@@ -7,9 +7,9 @@ export function buildAbsenceAnnouncementEmbed() {
       [
         '## Formulaire :',
         '',
-        '> **Pseudo/Id :**',
-        '> **Rôle :**',
-        '> **Temps :**',
+        'Ton **pseudo**, ton **ID** et tes **rôles** sont récupérés automatiquement par le bot.',
+        '',
+        '> **Temps :** *(durée de l’absence)*',
         '> **Raison :**',
         '',
         '-# Tout troll ou autre seras lourdement sanctionné.',

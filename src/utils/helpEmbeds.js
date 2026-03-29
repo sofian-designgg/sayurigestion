@@ -18,7 +18,7 @@ export function buildHelpEmbeds() {
       [
         '**`-panelcat`** — Panneau : 5 embeds (une par catégorie) + boutons pour assigner les **rôles** de chaque catégorie (menu, pas d’ID à taper).',
         '**`-setadminlogs`** — Choisir le salon des **logs** de modération (timeouts, warns, validations…).',
-        '**`-setabsencechannel`** — Salon où est posté l’**embed d’absence** (bouton → MP → formulaire).',
+        '**`-setabsencechannel`** — Salon de l’**embed d’absence** (bouton → MP → formulaire **durée + raison** ; pseudo / rôles remplis par le bot).',
         '**`-setabsenceinfo`** — Salon où arrivent les **réponses** d’absence (mention + réactions ✅❌).',
         '**`-setrankstaff`** — Choisir un **rôle**, puis indiquer **minutes vocal** et **messages** requis pour le rankup auto.',
         '**`-setchannelrank`** — Salon où le bot **mentionne** le staff et poste un **embed** à chaque rankup automatique.',

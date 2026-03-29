@@ -125,26 +125,12 @@ async function handleButton(interaction, client) {
       .setCustomId(`absence_modal:${guildId}`)
       .setTitle('Déclaration d’absence');
 
-    const pseudo = new TextInputBuilder()
-      .setCustomId('abs_pseudo')
-      .setLabel('Pseudo / ID Discord')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true)
-      .setMaxLength(100);
-
-    const role = new TextInputBuilder()
-      .setCustomId('abs_role')
-      .setLabel('Rôle')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true)
-      .setMaxLength(100);
-
     const temps = new TextInputBuilder()
       .setCustomId('abs_temps')
-      .setLabel('Temps (durée)')
+      .setLabel('Temps (durée de l’absence)')
       .setStyle(TextInputStyle.Short)
       .setRequired(true)
-      .setMaxLength(100);
+      .setMaxLength(200);
 
     const raison = new TextInputBuilder()
       .setCustomId('abs_raison')
@@ -154,8 +140,6 @@ async function handleButton(interaction, client) {
       .setMaxLength(1000);
 
     modal.addComponents(
-      new ActionRowBuilder().addComponents(pseudo),
-      new ActionRowBuilder().addComponents(role),
       new ActionRowBuilder().addComponents(temps),
       new ActionRowBuilder().addComponents(raison)
     );
@@ -511,24 +495,37 @@ async function handleModal(interaction, client) {
       return;
     }
 
-    const pseudo = interaction.fields.getTextInputValue('abs_pseudo');
-    const role = interaction.fields.getTextInputValue('abs_role');
     const temps = interaction.fields.getTextInputValue('abs_temps');
     const raison = interaction.fields.getTextInputValue('abs_raison');
+
+    const member = guild
+      ? await guild.members.fetch(interaction.user.id).catch(() => null)
+      : null;
+
+    let rolesLine = '*Impossible de charger les rôles (tu as peut-être quitté le serveur).*';
+    if (member) {
+      const names = member.roles.cache
+        .filter((r) => r.id !== guild.id)
+        .sort((a, b) => b.position - a.position)
+        .map((r) => r.name);
+      rolesLine = names.length ? names.join(', ') : '*Aucun rôle*';
+      if (rolesLine.length > 950) rolesLine = rolesLine.slice(0, 947) + '…';
+    }
 
     const embed = new EmbedBuilder()
       .setTitle('Nouvelle absence')
       .setDescription(
         [
-          `**Staff / membre** : ${interaction.user} (\`${interaction.user.id}\`)`,
+          `**Membre** : ${interaction.user} (\`${interaction.user.id}\`)`,
+          `**Pseudo Discord** : \`${interaction.user.tag}\``,
+          `**Rôles sur le serveur** : ${rolesLine}`,
           '',
-          `**Pseudo / ID** : ${pseudo}`,
-          `**Rôle** : ${role}`,
           `**Temps** : ${temps}`,
           `**Raison** : ${raison}`,
         ].join('\n')
       )
       .setColor(0xfee75c)
+      .setThumbnail(interaction.user.displayAvatarURL({ size: 128 }))
       .setTimestamp();
 
     let msg;
