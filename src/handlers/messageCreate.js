@@ -19,6 +19,7 @@ import { sendAdminLog } from '../utils/modLog.js';
 import { parseUserMention, parseDuration } from '../utils/parseArgs.js';
 import { incrementStaffMessage, buildStatsPayload } from '../services/rankup.js';
 import { buildHelpEmbeds } from '../utils/helpEmbeds.js';
+import { buildEmbedRankEmbeds, batchEmbedsForSending } from '../utils/embedRank.js';
 import { buildAbsenceAnnouncementEmbed, buildAbsenceButtonRow } from '../utils/absenceEmbed.js';
 import { handleCountingMessage } from '../services/countingChannel.js';
 import { ReactionRoleBinding } from '../database/models/ReactionRoleBinding.js';
@@ -498,6 +499,23 @@ export async function handleMessageCreate(message, client) {
       );
 
       await message.reply({ embeds: [embed], components: [row] });
+      return;
+    }
+
+    if (name === 'embedrank') {
+      if (!need(1)) return;
+      const tiers = await RankTier.find({ guildId }).sort({ order: 1 }).lean();
+      if (!tiers.length) {
+        await message.reply('Aucun palier rankup configuré. Utilise `-setrankstaff` pour en ajouter.');
+        return;
+      }
+      const cfg = await GuildConfig.findOne({ guildId }).lean();
+      const embeds = buildEmbedRankEmbeds({ tiers, categoryRoles: cfg?.categoryRoles });
+      const batches = batchEmbedsForSending(embeds);
+      await message.reply({ embeds: batches[0] });
+      for (let i = 1; i < batches.length; i++) {
+        await message.channel.send({ embeds: batches[i] });
+      }
       return;
     }
 

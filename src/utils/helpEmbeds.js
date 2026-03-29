@@ -26,6 +26,7 @@ export function buildHelpEmbeds() {
         '**`-setchannelcompeut`** — Définit le salon où l’on compte **1, 2, 3…** sans se tromper : **✅** si bon, **❌** + reset si erreur.',
         '**`-setreactionrole`** — Bouton puis formulaire : **lien du message** + **un seul emoji** (pas de texte) + **rôle** ; réagir donne le rôle, enlever la réaction l’ôte. Voir aussi `-reactionrole list` et `-delreactionrole`.',
         '**`-listrankstaff`** — Liste tous les **paliers** rankup + menu pour **supprimer** la config d’un rôle.',
+        '**`-embedrank`** — Publie des **embeds** : tous les **paliers**, conditions **vocal + messages**, regroupés par **catégorie staff** (`-panelcat`).',
         '**`-absencesync`** — Renvoie l’**embed d’absence** dans le salon configuré (utile après édition).',
       ].join('\n\n')
     );
