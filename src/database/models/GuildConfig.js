@@ -32,6 +32,26 @@ const guildConfigSchema = new mongoose.Schema({
   categoryRoles: { type: categoryRolesSchema, default: () => ({}) },
   /** Rôles réattribués après un rankup s’ils manquent (ex. apprenti). */
   rankupForeverRoleIds: { type: [String], default: [] },
+
+  /** Catégorie où sont créés les salons tickets. */
+  ticketCategoryId: { type: String, default: null },
+  /** Rôle staff qui voit tous les tickets (optionnel mais recommandé). */
+  ticketStaffRoleId: { type: String, default: null },
+  /** Données embed panneau (Mixed, format ticket JSON). */
+  ticketPanelEmbed: { type: mongoose.Schema.Types.Mixed, default: null },
+  ticketButtons: {
+    type: [
+      {
+        id: { type: String, required: true },
+        label: { type: String, required: true },
+        emoji: { type: String, default: null },
+        style: { type: String, default: 'Secondary' },
+      },
+    ],
+    default: [],
+  },
+  ticketPanelChannelId: { type: String, default: null },
+  ticketPanelMessageId: { type: String, default: null },
 });
 
 export const GuildConfig = mongoose.model('GuildConfig', guildConfigSchema);

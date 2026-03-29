@@ -28,6 +28,9 @@ export function buildHelpEmbeds() {
         '**`-setreactionrole`** — Bouton puis formulaire : **lien du message** + **un seul emoji** (pas de texte) + **rôle** ; réagir donne le rôle, enlever la réaction l’ôte. Voir aussi `-reactionrole list` et `-delreactionrole`.',
         '**`-listrankstaff`** — Liste tous les **paliers** rankup + menu pour **supprimer** la config d’un rôle.',
         '**`-embedrank`** — Publie des **embeds** : tous les **paliers**, conditions **vocal + messages**, regroupés par **catégorie staff** (`-panelcat`).',
+        '**`-ticketcat`** — Menus : **catégorie** des salons tickets + **rôle staff** (voir les tickets).',
+        '**`-ticketembed`** — Bouton → coller le **JSON** du constructeur web **`/ticket-builder`** (embed + **plusieurs boutons**).',
+        '**`-ticketsync`** — Choisir le **salon** : envoie ou **met à jour** le panneau tickets.',
         '**`-absencesync`** — Renvoie l’**embed d’absence** dans le salon configuré (utile après édition).',
       ].join('\n\n')
     );
@@ -84,7 +87,7 @@ export function buildHelpEmbeds() {
         '· **Rankup** : compteurs pour les membres **staff** (rôle cat.) ou ayant un **rôle palier**. **Forever** : `-foreverrole` pour garder un rôle (ex. apprenti) même après paliers suivants.',
         '· **Stats vocales** (`-setcatserveurinfo`) : **PRESENCE INTENT** sur le portail pour **En ligne**.',
         '· **Rôles-réaction** : activer **MESSAGE CONTENT INTENT** (déjà) + **SERVER MEMBERS** ; ajouter **GUILD MESSAGE REACTIONS** (intent « réactions ») pour que le bot voie les réactions.',
-        '· **Outil embed (HTML)** : URL `https://TON_DOMAINE_RAILWAY/embed-builder` (même **PORT** que le bot) — prévisualisation, couleur, emoji, copie **JSON** ou **discord.js**. En local : `http://localhost:3000/embed-builder`.',
+        '· **Outils HTML** (même **PORT** que le bot / Railway) : **`/embed-builder`** (embed), **`/ticket-builder`** (panneau tickets + boutons). En local : ex. `http://localhost:3000/ticket-builder`.',
       ].join('\n')
     );
 

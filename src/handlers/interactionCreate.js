@@ -31,6 +31,12 @@ import {
   setReactionRoleDraft,
   takeReactionRoleDraft,
 } from '../services/reactionRoleDraft.js';
+import {
+  closeTicketInteraction,
+  openTicketInteraction,
+  syncTicketPanelMessage,
+} from '../services/tickets.js';
+import { validateTicketPanelJson } from '../utils/ticketPanel.js';
 
 async function safePower(member) {
   if (!member) return null;
@@ -68,6 +74,47 @@ export async function handleInteractionCreate(interaction, client) {
 
 async function handleButton(interaction, client) {
   const id = interaction.customId;
+
+  if (id.startsWith('t_close:')) {
+    const channelId = id.slice('t_close:'.length);
+    if (interaction.guildId && interaction.channelId === channelId) {
+      await closeTicketInteraction(interaction, client);
+    }
+    return;
+  }
+
+  if (id.startsWith('t_open:')) {
+    const parts = id.split(':');
+    if (parts.length < 3 || interaction.guildId !== parts[1]) return;
+    const buttonId = parts.slice(2).join(':');
+    await openTicketInteraction(interaction, client, buttonId);
+    return;
+  }
+
+  if (id.startsWith('ticket_cfg_open:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+
+    const modal = new ModalBuilder()
+      .setCustomId(`ticketembed_modal:${guildId}`)
+      .setTitle('Panneau tickets (JSON)');
+
+    const j = new TextInputBuilder()
+      .setCustomId('ticket_json')
+      .setLabel('Colle le JSON (page /ticket-builder)')
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(true)
+      .setMaxLength(4000);
+
+    modal.addComponents(new ActionRowBuilder().addComponents(j));
+    await interaction.showModal(modal);
+    return;
+  }
 
   if (id.startsWith('panelcat_btn:')) {
     const [, cat, guildId] = id.split(':');
@@ -332,6 +379,41 @@ async function handleButton(interaction, client) {
 async function handleRoleSelect(interaction, client) {
   const id = interaction.customId;
 
+  if (id.startsWith('setcfg_ticket_staff:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+
+    if (!interaction.values?.length) {
+      await GuildConfig.findOneAndUpdate(
+        { guildId },
+        { $unset: { ticketStaffRoleId: 1 }, $setOnInsert: { guildId } },
+        { upsert: true }
+      );
+      await interaction.update({
+        content: 'Rôle **staff tickets** retiré (les tickets restent visibles par auteur + modérateurs).',
+        components: [],
+      });
+      return;
+    }
+
+    const roleId = interaction.values[0];
+    await GuildConfig.findOneAndUpdate(
+      { guildId },
+      { $set: { ticketStaffRoleId: roleId }, $setOnInsert: { guildId } },
+      { upsert: true }
+    );
+    await interaction.update({
+      content: `Rôle **staff tickets** : <@&${roleId}>`,
+      components: [],
+    });
+    return;
+  }
+
   if (id.startsWith('panelcat_roles:')) {
     const [, cat, guildId] = id.split(':');
     if (interaction.guildId !== guildId) return;
@@ -528,6 +610,35 @@ async function handleChannelSelect(interaction, client) {
   const guildId = interaction.guildId;
   const power = await safePower(interaction.member);
   const channelId = interaction.values[0];
+
+  if (id === `ticketsync_ch:${guildId}`) {
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+    await syncTicketPanelMessage(interaction, client);
+    return;
+  }
+
+  if (id === `setcfg_ticket_parent:${guildId}`) {
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+    await GuildConfig.findOneAndUpdate(
+      { guildId },
+      {
+        $set: { ticketCategoryId: channelId },
+        $setOnInsert: { guildId },
+      },
+      { upsert: true }
+    );
+    await interaction.update({
+      content: `**Catégorie** des tickets : <#${channelId}>`,
+      components: [],
+    });
+    return;
+  }
 
   if (id === `embed_dest:${guildId}`) {
     if (!canUseCommand(power, 5)) {
@@ -734,6 +845,42 @@ async function handleChannelSelect(interaction, client) {
 
 async function handleModal(interaction, client) {
   const id = interaction.customId;
+
+  if (id.startsWith('ticketembed_modal:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+
+    const raw = interaction.fields.getTextInputValue('ticket_json').trim();
+    const parsed = validateTicketPanelJson(raw);
+    if (parsed.error) {
+      await interaction.reply({ content: parsed.error, ephemeral: true });
+      return;
+    }
+
+    await GuildConfig.findOneAndUpdate(
+      { guildId },
+      {
+        $set: {
+          ticketPanelEmbed: parsed.embed,
+          ticketButtons: parsed.buttons,
+        },
+        $setOnInsert: { guildId },
+      },
+      { upsert: true }
+    );
+
+    await interaction.reply({
+      content:
+        'Panneau tickets **enregistré**. Publie ou mets à jour le message avec **\-ticketsync** (choix du salon).',
+      ephemeral: true,
+    });
+    return;
+  }
 
   if (id.startsWith('rr_modal:')) {
     const guildId = id.split(':')[1];

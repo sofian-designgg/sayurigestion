@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Constructeur panneau tickets — Discord</title>
+  <style>
+    :root {
+      --bg: #313338;
+      --sidebar: #2b2d31;
+      --input: #1e1f22;
+      --border: #3f4147;
+      --text: #dbdee1;
+      --muted: #949ba4;
+      --accent: #5865f2;
+      --embed-bg: #2b2d31;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "gg sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+    header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--sidebar);
+    }
+    header h1 { margin: 0; font-size: 1.25rem; }
+    header p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.9rem; }
+    header .header-note {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      background: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+    .wrap {
+      display: grid;
+      grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
+      gap: 0;
+      min-height: calc(100vh - 80px);
+    }
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; }
+    }
+    .panel {
+      padding: 1.25rem;
+      border-right: 1px solid var(--border);
+    }
+    .panel.preview-wrap {
+      background: #1e1f22;
+      border-right: none;
+    }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    input[type="text"],
+    input[type="url"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--input);
+      color: var(--text);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+    textarea { min-height: 100px; resize: vertical; font-family: inherit; }
+    input[type="color"] {
+      width: 100%;
+      height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px;
+      background: var(--input);
+      cursor: pointer;
+      margin-bottom: 0.5rem;
+    }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+    .btn-row button {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .btn-row button.secondary {
+      background: #4f545c;
+    }
+    .btn-row button.danger {
+      background: #ed4245;
+    }
+    .ticket-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      background: var(--sidebar);
+    }
+    .ticket-card h4 {
+      margin: 0 0 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .discord-msg { max-width: 520px; margin: 0 auto; padding: 1rem 0; }
+    .discord-embed {
+      background: var(--embed-bg);
+      border-left: 4px solid var(--accent);
+      border-radius: 4px;
+      padding: 0.75rem 1rem 0.75rem 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .discord-embed .title { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .discord-embed .desc {
+      font-size: 0.875rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .discord-embed .footer { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; }
+    .fake-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .fake-buttons span {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      background: #4e5058;
+      color: #fff;
+    }
+    .fake-buttons span.p { background: #5865f2; }
+    .fake-buttons span.s { background: #4f545c; }
+    .fake-buttons span.su { background: #248046; }
+    .fake-buttons span.d { background: #ed4245; }
+    .outputs {
+      padding: 1.25rem;
+      border-top: 1px solid var(--border);
+      background: var(--sidebar);
+    }
+    pre {
+      background: #1e1f22;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow: auto;
+      font-size: 0.78rem;
+      max-height: 220px;
+      margin: 0 0 0.75rem;
+    }
+    .copy-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .copy-row button {
+      background: #248046;
+      border: none;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
+    .chk-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Constructeur panneau tickets</h1>
+    <p>Embed + <strong>plusieurs boutons</strong> (types de tickets). Copie le JSON pour <code>-ticketembed</code> sur Discord.</p>
+    <p class="header-note">
+      <strong>Bot Sayuri :</strong> <code>-ticketcat</code> (catégorie + rôle staff) → <code>-ticketembed</code> (coller ce JSON) →
+      <code>-ticketsync</code> (salon du panneau). Chaque bouton ouvre un salon <code>ticket-nom</code> dans la catégorie.
+      <strong>id</strong> du bouton : lettres, chiffres, <code>_</code>, <code>-</code> uniquement (ex. <code>support</code>, <code>partenaire</code>).
+    </p>
+  </header>
+  <div class="wrap">
+    <div class="panel">
+      <label for="title">Titre embed</label>
+      <input type="text" id="title" placeholder="Besoin d’aide ?" maxlength="256" />
+
+      <label for="description">Description</label>
+      <textarea id="description" placeholder="Choisis un type de ticket ci-dessous…"></textarea>
+
+      <div class="row2">
+        <div>
+          <label for="color">Couleur</label>
+          <input type="color" id="color" value="#5865f2" />
+          <input type="text" id="colorHex" placeholder="5865F2" maxlength="7" />
+        </div>
+        <div>
+          <label for="footer">Pied de page</label>
+          <input type="text" id="footer" placeholder="Réponse sous 24h" />
+        </div>
+      </div>
+
+      <label class="chk-row">
+        <input type="checkbox" id="useTimestamp" checked />
+        Horodatage sur l’embed
+      </label>
+
+      <hr style="border: none; border-top: 1px solid var(--border); margin: 1rem 0" />
+
+      <h3 style="margin: 0 0 0.5rem; font-size: 1rem">Boutons (max 25)</h3>
+      <div class="btn-row">
+        <button type="button" id="addBtn">+ Bouton</button>
+        <button type="button" class="secondary" id="removeLastBtn">Retirer le dernier</button>
+      </div>
+      <div id="buttonsList"></div>
+    </div>
+
+    <div class="panel preview-wrap">
+      <label>Aperçu</label>
+      <div class="discord-msg">
+        <div class="discord-embed" id="previewEmbed">
+          <div class="title" id="pvTitle"></div>
+          <div class="desc" id="pvDesc"></div>
+          <div class="footer" id="pvFooter"></div>
+        </div>
+        <div class="fake-buttons" id="pvButtons"></div>
+      </div>
+      <p class="hint">Le rendu Discord peut différer légèrement. Les couleurs de boutons correspondent aux styles.</p>
+    </div>
+  </div>
+  <div class="outputs">
+    <label>JSON pour le bot (commande <code>-ticketembed</code>)</label>
+    <pre id="outJson"></pre>
+    <div class="copy-row">
+      <button type="button" id="btnCopy">Copier le JSON</button>
+      <span id="copyOk" class="hint" style="display:none">Copié !</span>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const colorPicker = $("color");
+    const colorHex = $("colorHex");
+
+    let buttonRows = [
+      { id: "support", label: "Support", emoji: "🎫", style: "Primary" },
+      { id: "autre", label: "Autre demande", emoji: "", style: "Secondary" },
+    ];
+
+    function hexFromPicker() {
+      return colorPicker.value.replace("#", "").toUpperCase();
+    }
+    function syncHexFromPicker() {
+      colorHex.value = hexFromPicker();
+      update();
+    }
+    function syncPickerFromHex() {
+      let h = colorHex.value.replace(/^#/, "");
+      if (/^[0-9A-Fa-f]{6}$/.test(h)) {
+        colorPicker.value = "#" + h;
+      }
+      update();
+    }
+    colorPicker.addEventListener("input", syncHexFromPicker);
+    colorHex.addEventListener("input", syncPickerFromHex);
+
+    function parseMarkdownSimple(text) {
+      if (!text) return "";
+      return text
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>")
+        .replace(/\n/g, "<br/>");
+    }
+
+    function intColor(hex) {
+      const h = hex.replace(/^#/, "");
+      if (!/^[0-9A-Fa-f]{6}$/.test(h)) return 5793266;
+      return parseInt(h, 16);
+    }
+
+    function renderButtonRows() {
+      const host = $("buttonsList");
+      host.innerHTML = "";
+      buttonRows.forEach((row, i) => {
+        const card = document.createElement("div");
+        card.className = "ticket-card";
+        card.innerHTML =
+          "<h4>Bouton " +
+          (i + 1) +
+          "</h4>" +
+          '<label>id (unique, sans espace)</label>' +
+          '<input type="text" data-k="id" data-i="' +
+          i +
+          '" value="' +
+          (row.id || "").replace(/"/g, "&quot;") +
+          '" placeholder="support" maxlength="32" />' +
+          '<label>Label affiché</label>' +
+          '<input type="text" data-k="label" data-i="' +
+          i +
+          '" value="' +
+          (row.label || "").replace(/"/g, "&quot;") +
+          '" maxlength="80" />' +
+          '<label>Emoji (optionnel)</label>' +
+          '<input type="text" data-k="emoji" data-i="' +
+          i +
+          '" value="' +
+          (row.emoji || "").replace(/"/g, "&quot;") +
+          '" placeholder="🎫" maxlength="20" />' +
+          '<label>Style</label>' +
+          '<select data-k="style" data-i="' +
+          i +
+          '">' +
+          ["Primary", "Secondary", "Success", "Danger"]
+            .map(
+              (s) =>
+                "<option" +
+                (row.style === s ? " selected" : "") +
+                ">" +
+                s +
+                "</option>"
+            )
+            .join("") +
+          "</select>";
+        host.appendChild(card);
+      });
+      host.querySelectorAll("input, select").forEach((el) => {
+        el.addEventListener("input", onRowInput);
+        el.addEventListener("change", onRowInput);
+      });
+    }
+
+    function onRowInput() {
+      const i = +this.dataset.i;
+      const k = this.dataset.k;
+      if (buttonRows[i]) {
+        buttonRows[i][k] = this.value;
+        if (k === "style") buttonRows[i][k] = this.value;
+      }
+      update();
+    }
+
+    $("addBtn").addEventListener("click", () => {
+      if (buttonRows.length >= 25) return;
+      buttonRows.push({
+        id: "btn" + (buttonRows.length + 1),
+        label: "Nouveau",
+        emoji: "",
+        style: "Secondary",
+      });
+      renderButtonRows();
+      update();
+    });
+
+    $("removeLastBtn").addEventListener("click", () => {
+      if (buttonRows.length <= 1) return;
+      buttonRows.pop();
+      renderButtonRows();
+      update();
+    });
+
+    function buildPayload() {
+      const title = $("title").value.trim();
+      const description = $("description").value.trim();
+      const footer = $("footer").value.trim();
+      const color = intColor(colorHex.value || hexFromPicker());
+
+      const embed = { color };
+      if (title) embed.title = title;
+      if (description) embed.description = description;
+      if (footer) embed.footer = { text: footer };
+      if ($("useTimestamp").checked) embed.timestamp = true;
+
+      const buttons = buttonRows.map((b) => {
+        const o = {
+          id: String(b.id || "")
+            .trim()
+            .slice(0, 32),
+          label: String(b.label || "")
+            .trim()
+            .slice(0, 80),
+          style: b.style || "Secondary",
+        };
+        if (b.emoji && String(b.emoji).trim()) o.emoji = String(b.emoji).trim().slice(0, 20);
+        return o;
+      });
+
+      return { embed, buttons };
+    }
+
+    function update() {
+      const title = $("title").value.trim();
+      const description = $("description").value;
+      const footer = $("footer").value.trim();
+      const hex = (colorHex.value || hexFromPicker()).replace(/^#/, "");
+      const col = /^[0-9A-Fa-f]{6}$/.test(hex) ? "#" + hex : "#5865F2";
+
+      $("previewEmbed").style.borderLeftColor = col;
+
+      const t = $("pvTitle");
+      if (title) {
+        t.textContent = title;
+        t.style.display = "block";
+      } else {
+        t.textContent = "";
+        t.style.display = "none";
+      }
+
+      $("pvDesc").innerHTML =
+        parseMarkdownSimple(description) || '<span style="color:#949ba4">(description)</span>';
+
+      const ft = $("pvFooter");
+      if (footer) {
+        ft.textContent = footer + ($("useTimestamp").checked ? " · Aujourd’hui à …" : "");
+        ft.style.display = "block";
+      } else {
+        ft.style.display = "none";
+      }
+
+      const fb = $("pvButtons");
+      fb.innerHTML = "";
+      buttonRows.forEach((b) => {
+        const st = (b.style || "Secondary").toLowerCase();
+        const cls =
+          st === "primary" ? "p" : st === "success" ? "su" : st === "danger" ? "d" : "s";
+        const span = document.createElement("span");
+        span.className = cls;
+        span.textContent = (b.emoji ? b.emoji + " " : "") + (b.label || "…");
+        fb.appendChild(span);
+      });
+
+      const payload = buildPayload();
+      $("outJson").textContent = JSON.stringify(payload, null, 2);
+    }
+
+    ["title", "description", "footer"].forEach((id) => $(id).addEventListener("input", update));
+    $("useTimestamp").addEventListener("change", update);
+
+    $("btnCopy").addEventListener("click", async () => {
+      await navigator.clipboard.writeText($("outJson").textContent);
+      $("copyOk").style.display = "inline";
+      setTimeout(() => ($("copyOk").style.display = "none"), 2000);
+    });
+
+    renderButtonRows();
+    syncHexFromPicker();
+    update();
+  </script>
+</body>
+</html>

@@ -743,6 +743,85 @@ export async function handleMessageCreate(message, client) {
       return;
     }
 
+    if (name === 'ticketcat') {
+      if (!need(1)) return;
+      const embed = new EmbedBuilder()
+        .setTitle('Configuration tickets')
+        .setDescription(
+          [
+            '· **Catégorie** : les salons `ticket-…` seront créés **dedans**.',
+            '· **Rôle staff** : peut voir et répondre dans tous les tickets (optionnel : laisse vide pour retirer).',
+            '',
+            'Puis **\-ticketembed** (JSON depuis `/ticket-builder`) et **\-ticketsync** pour publier le panneau.',
+          ].join('\n')
+        )
+        .setColor(0x57f287);
+
+      const row1 = new ActionRowBuilder().addComponents(
+        new ChannelSelectMenuBuilder()
+          .setCustomId(`setcfg_ticket_parent:${guildId}`)
+          .setPlaceholder('Catégorie des salons tickets')
+          .setChannelTypes([ChannelType.GuildCategory])
+      );
+      const row2 = new ActionRowBuilder().addComponents(
+        new RoleSelectMenuBuilder()
+          .setCustomId(`setcfg_ticket_staff:${guildId}`)
+          .setPlaceholder('Rôle staff (voir les tickets)')
+          .setMinValues(0)
+          .setMaxValues(1)
+      );
+
+      await message.reply({ embeds: [embed], components: [row1, row2] });
+      return;
+    }
+
+    if (name === 'ticketembed') {
+      if (!need(1)) return;
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ticket_cfg_open:${guildId}`)
+          .setLabel('Coller le JSON (constructeur web)')
+          .setStyle(ButtonStyle.Primary)
+      );
+      await message.reply({
+        content: [
+          '1. Ouvre **`/ticket-builder`** sur ton hébergement (même URL que le bot, ex. Railway).',
+          '2. Personnalise l’**embed** et ajoute **un ou plusieurs boutons** (types de tickets).',
+          '3. Copie le **JSON** en bas de page.',
+          '4. Clique sur le bouton ci-dessous et **colle** le JSON.',
+          '',
+          '5. **\-ticketsync** pour envoyer le panneau dans un salon.',
+        ].join('\n'),
+        components: [row],
+      });
+      return;
+    }
+
+    if (name === 'ticketsync') {
+      if (!need(1)) return;
+      const cfg = await GuildConfig.findOne({ guildId });
+      if (!cfg?.ticketPanelEmbed || !cfg.ticketButtons?.length) {
+        await message.reply('Configure d’abord le panneau avec **\-ticketembed** (JSON).');
+        return;
+      }
+      if (!cfg.ticketCategoryId) {
+        await message.reply('Définis la **catégorie** avec **\-ticketcat**.');
+        return;
+      }
+      const row = new ActionRowBuilder().addComponents(
+        new ChannelSelectMenuBuilder()
+          .setCustomId(`ticketsync_ch:${guildId}`)
+          .setPlaceholder('Salon du panneau tickets')
+          .setChannelTypes([ChannelType.GuildText, ChannelType.GuildAnnouncement])
+      );
+      await message.reply({
+        content:
+          'Choisis le salon où **publier** ou **mettre à jour** le panneau (même salon = édition du message du bot si possible).',
+        components: [row],
+      });
+      return;
+    }
+
     if (name === 'help') {
       if (!need(5)) return;
       const embeds = buildHelpEmbeds();

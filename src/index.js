@@ -90,9 +90,24 @@ http
       return;
     }
 
+    if (url === '/ticket-builder') {
+      try {
+        const htmlPath = path.join(__dirname, '..', 'public', 'ticket-builder.html');
+        const html = fs.readFileSync(htmlPath, 'utf8');
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(html);
+      } catch {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Fichier ticket-builder introuvable.');
+      }
+      return;
+    }
+
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('ok');
   })
   .listen(port, () => {
-    console.log(`HTTP :${port} — health \`/\` · outil embed \`/embed-builder\` (Railway)`);
+    console.log(
+      `HTTP :${port} — health \`/\` · \`/embed-builder\` · \`/ticket-builder\` (Railway)`
+    );
   });
