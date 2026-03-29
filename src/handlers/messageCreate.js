@@ -471,7 +471,7 @@ export async function handleMessageCreate(message, client) {
     }
 
     if (name === 'embed') {
-      if (!need(2)) return;
+      if (!need(5)) return;
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(`embed_open:${guildId}`)

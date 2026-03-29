@@ -168,8 +168,8 @@ async function handleButton(interaction, client) {
     const guildId = id.split(':')[1];
     if (interaction.guildId !== guildId) return;
     const power = await safePower(interaction.member);
-    if (!canUseCommand(power, 2)) {
-      await interaction.reply({ content: 'Réservé aux catégories **1 et 2**.', ephemeral: true });
+    if (!canUseCommand(power, 5)) {
+      await interaction.reply({ content: 'Réservé au **staff** (rôle configuré dans `-panelcat`).', ephemeral: true });
       return;
     }
 
@@ -374,8 +374,8 @@ async function handleChannelSelect(interaction, client) {
   const channelId = interaction.values[0];
 
   if (id === `embed_dest:${guildId}`) {
-    if (!canUseCommand(power, 2)) {
-      await interaction.reply({ content: 'Réservé aux catégories **1 et 2**.', ephemeral: true });
+    if (!canUseCommand(power, 5)) {
+      await interaction.reply({ content: 'Réservé au **staff**.', ephemeral: true });
       return;
     }
 
@@ -611,8 +611,8 @@ async function handleModal(interaction, client) {
     const guildId = id.split(':')[1];
     if (interaction.guildId !== guildId) return;
     const power = await safePower(interaction.member);
-    if (!canUseCommand(power, 2)) {
-      await interaction.reply({ content: 'Réservé aux catégories **1 et 2**.', ephemeral: true });
+    if (!canUseCommand(power, 5)) {
+      await interaction.reply({ content: 'Réservé au **staff**.', ephemeral: true });
       return;
     }
 

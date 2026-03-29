@@ -32,7 +32,6 @@ export function buildHelpEmbeds() {
     .setColor(0xf26522)
     .setDescription(
       [
-        '**`-embed`** — Créer un **embed** via bouton + formulaire, puis choisir le **salon** d’envoi.',
         '**`-resetstats @membre`** — Remet à **0** les compteurs **vocal + messages** staff (rankup) pour ce membre.',
       ].join('\n\n')
     );
@@ -62,6 +61,7 @@ export function buildHelpEmbeds() {
     .setColor(0x99aab5)
     .setDescription(
       [
+        '**`-embed`** — Créer un **embed** (bouton → formulaire → choix du salon). **Tout le staff** (cat. 1 à 5) peut l’utiliser.',
         '**`-warn @membre raison`** — Warn. Si tu es **seulement** en cat. 5, le warn part en **validation** (cat. 1–4 dans les logs). Sinon il est **appliqué** tout de suite.',
         '**`-mute`** / **`-timeout @membre 10m raison`** — **Timeout** Discord (durées : `s`, `m`, `h`, `d`, max 28 j).',
         '**`-warns @membre`** — Liste les **warns** enregistrés pour ce membre.',
