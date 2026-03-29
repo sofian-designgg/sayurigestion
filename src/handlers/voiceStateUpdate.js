@@ -9,13 +9,13 @@ export async function handleVoiceStateUpdate(oldState, newState) {
   const newId = newState.channelId;
 
   if (oldId && oldId !== newId) {
-    const mins = consumeVoiceMinutes(guild.id, uid);
+    const mins = await consumeVoiceMinutes(guild.id, uid);
     const mem = await guild.members.fetch(uid).catch(() => null);
     if (mem && mins > 0) await addVoiceMinutes(mem, mins).catch(() => {});
   }
 
   if (newId && newId !== oldId) {
-    markVoiceJoin(guild.id, uid);
+    await markVoiceJoin(guild.id, uid);
   }
 
   scheduleStatsRefresh(guild);

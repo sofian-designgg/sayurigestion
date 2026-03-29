@@ -22,6 +22,10 @@ import {
   scheduleStatsRefresh,
   updateAllServerStatsChannels,
 } from './services/serverStatsChannels.js';
+import {
+  flushOrphanVoiceSessions,
+  syncVoiceJoinsFromClient,
+} from './services/voiceTracker.js';
 
 const token = process.env.DISCORD_TOKEN;
 if (!token) {
@@ -46,8 +50,10 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.User],
 });
 
-client.once('ready', () => {
-  console.log(`Connecté en tant que ${client.user.tag}`);
+client.once('ready', async (c) => {
+  console.log(`Connecté en tant que ${c.user.tag}`);
+  await flushOrphanVoiceSessions(c).catch(console.error);
+  await syncVoiceJoinsFromClient(c).catch(console.error);
   updateAllServerStatsChannels(client).catch(console.error);
   setInterval(() => updateAllServerStatsChannels(client).catch(console.error), 5 * 60 * 1000);
 });

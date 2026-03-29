@@ -97,14 +97,55 @@ function apiEmbedToBuilder(e, ctx) {
   return b;
 }
 
+/**
+ * Discord n’accepte pas les « shortcodes » du type `:gift:` sur les boutons — il faut du Unicode
+ * ou un emoji serveur `{ id, name }`. On convertit les shortcodes courants ; sinon on ignore l’emoji.
+ */
+const SHORTCODE_TO_UNICODE = {
+  gift: '🎁',
+  trophy: '🏆',
+  medal: '🏅',
+  star: '⭐',
+  star2: '🌟',
+  tada: '🎉',
+  sparkles: '✨',
+  alarm_clock: '⏰',
+  clock: '🕐',
+  white_check_mark: '✅',
+  x: '❌',
+  warning: '⚠️',
+  link: '🔗',
+  ticket: '🎫',
+  mail: '📧',
+  heart: '❤️',
+  fire: '🔥',
+};
+
+function shortcodeToUnicode(s) {
+  const m = String(s).trim().match(/^:([a-z0-9_]+):$/i);
+  if (!m) return null;
+  return SHORTCODE_TO_UNICODE[m[1].toLowerCase()] ?? null;
+}
+
 function normalizeEmoji(emoji) {
   if (!emoji) return undefined;
-  if (typeof emoji === 'string') return emoji.slice(0, 80);
-  if (typeof emoji === 'object' && emoji.id && emoji.name) {
-    return { id: emoji.id, name: emoji.name };
+  if (typeof emoji === 'string') {
+    const u = shortcodeToUnicode(emoji) ?? emoji;
+    if (/^:[a-z0-9_]+:$/i.test(String(u).trim())) return undefined;
+    return u.slice(0, 80);
   }
-  if (typeof emoji === 'object' && emoji.name) {
-    return String(emoji.name).slice(0, 80);
+  if (typeof emoji === 'object' && emoji.id && emoji.name) {
+    return {
+      id: String(emoji.id),
+      name: String(emoji.name).replace(/^:/, '').replace(/:$/, '').slice(0, 32),
+      ...(emoji.animated ? { animated: true } : {}),
+    };
+  }
+  if (typeof emoji === 'object' && emoji.name != null) {
+    const raw = String(emoji.name);
+    const u = shortcodeToUnicode(raw) ?? raw;
+    if (/^:[a-z0-9_]+:$/i.test(String(u).trim())) return undefined;
+    return u.slice(0, 80);
   }
   return undefined;
 }
