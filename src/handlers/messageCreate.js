@@ -240,7 +240,7 @@ export async function handleMessageCreate(message, client) {
               [
                 '1. Clique sur le bouton.',
                 '2. Colle le **lien du message** (clic droit → Copier le lien).',
-                '3. Indique l’**emoji** (unicode ou `<:nom:id>`).',
+                '3. Indique **un seul** **emoji** (ex. `👒` ou `<:nom:id>`) — **pas de phrase** autour.',
                 '4. Choisis le **rôle** dans le menu.',
                 '',
                 'Le bot ajoute la réaction sur le message. **Réagir** donne le rôle, **retirer** l’enlève.',

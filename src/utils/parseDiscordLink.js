@@ -9,13 +9,19 @@ export function parseDiscordMessageLink(input) {
 /**
  * @returns {{ key: string, react: string } | null}
  * key pour la base : custom:id ou unicode:…
+ * Discord n’accepte qu’**un seul** emoji par réaction : pas de phrase, pas d’espace.
  */
 export function parseEmojiForReaction(str) {
   const s = String(str || '').trim();
   const custom = s.match(/^<a?:([\w~]+):(\d+)>$/);
   if (custom) return { key: `custom:${custom[2]}`, react: s };
-  if (s && !s.startsWith('<')) return { key: `unicode:${s}`, react: s };
-  return null;
+
+  if (!s || s.startsWith('<')) return null;
+  /* Phrases du type "devenir staff 👒 !" cassent message.react() */
+  if (/\s/.test(s)) return null;
+  if (s.length > 48) return null;
+
+  return { key: `unicode:${s}`, react: s };
 }
 
 export function emojiKeyFromReaction(reaction) {

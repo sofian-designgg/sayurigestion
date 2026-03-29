@@ -24,7 +24,7 @@ export function buildHelpEmbeds() {
         '**`-setchannelrank`** — Salon où le bot **mentionne** le staff et poste un **embed** à chaque rankup automatique.',
         '**`-setcatserveurinfo`** — Choisir une **catégorie** : crée **5 salons vocaux** affichage seule (membres, en ligne, en vocal, boost, lien .gg/sayuri), **mis à jour** en continu.',
         '**`-setchannelcompeut`** — Définit le salon où l’on compte **1, 2, 3…** sans se tromper : **✅** si bon, **❌** + reset si erreur.',
-        '**`-setreactionrole`** — Bouton puis formulaire : **lien du message** + **emoji** + **rôle** ; réagir donne le rôle, enlever la réaction l’ôte. Voir aussi `-reactionrole list` et `-delreactionrole`.',
+        '**`-setreactionrole`** — Bouton puis formulaire : **lien du message** + **un seul emoji** (pas de texte) + **rôle** ; réagir donne le rôle, enlever la réaction l’ôte. Voir aussi `-reactionrole list` et `-delreactionrole`.',
         '**`-listrankstaff`** — Liste tous les **paliers** rankup + menu pour **supprimer** la config d’un rôle.',
         '**`-absencesync`** — Renvoie l’**embed d’absence** dans le salon configuré (utile après édition).',
       ].join('\n\n')

@@ -241,10 +241,11 @@ async function handleButton(interaction, client) {
 
     const em = new TextInputBuilder()
       .setCustomId('rr_emoji')
-      .setLabel('Emoji (unicode ou <:nom:id>)')
+      .setLabel('Un seul emoji (ex: 👒) ou <:nom:id>')
       .setStyle(TextInputStyle.Short)
       .setRequired(true)
-      .setMaxLength(100);
+      .setMaxLength(100)
+      .setPlaceholder('👒 — pas de phrase, juste l’emoji');
 
     modal.addComponents(
       new ActionRowBuilder().addComponents(link),
@@ -391,10 +392,12 @@ async function handleRoleSelect(interaction, client) {
       { upsert: true }
     );
 
-    await msg.react(draft.reactString).catch(() => {});
+    const reactErr = await msg.react(draft.reactString).then(() => null).catch((e) => e);
 
     await interaction.update({
-      content: `**Rôle-réaction** enregistré : cet emoji → <@&${roleId}> (retirer la réaction enlève le rôle).`,
+      content: reactErr
+        ? `**Liaison** enregistrée, mais la réaction n’a pas pu être ajoutée sur le message : \`${reactErr.message}\`. Vérifie les permissions du bot sur ce salon (Ajouter des réactions) et que l’emoji est **un seul** caractère / emoji valide. Le rôle s’applique quand quelqu’un réagit avec le même emoji.`
+        : `**Rôle-réaction** enregistré : ${draft.reactString} → <@&${roleId}> (retirer la réaction enlève le rôle).`,
       components: [],
     });
     return;
@@ -697,7 +700,7 @@ async function handleModal(interaction, client) {
     if (!emoji) {
       await interaction.reply({
         content:
-          'Emoji invalide. Envoie un **émoji unicode** ou la forme **`<:nom:id>`** / **`<a:nom:id>`** pour un émoji personnalisé.',
+          'Emoji invalide. Il faut **un seul** emoji, **sans texte** autour :\n· `👒` ou `✅` (colle l’emoji seul)\n· ou emoji serveur : `<:nom:123456789012345678>`\n\nPas de phrase du type « devenir staff 👒 » — Discord ne peut pas réagir avec du texte.',
         ephemeral: true,
       });
       return;
