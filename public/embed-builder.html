@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Constructeur d’embed Discord</title>
+  <style>
+    :root {
+      --bg: #313338;
+      --sidebar: #2b2d31;
+      --input: #1e1f22;
+      --border: #3f4147;
+      --text: #dbdee1;
+      --muted: #949ba4;
+      --accent: #5865f2;
+      --embed-bg: #2b2d31;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "gg sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+    header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--sidebar);
+    }
+    header h1 { margin: 0; font-size: 1.25rem; }
+    header p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.9rem; }
+    .wrap {
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.1fr);
+      gap: 0;
+      min-height: calc(100vh - 80px);
+    }
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; }
+    }
+    .panel {
+      padding: 1.25rem;
+      border-right: 1px solid var(--border);
+    }
+    .panel.preview-wrap {
+      background: #1e1f22;
+      border-right: none;
+    }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.02em;
+    }
+    input[type="text"],
+    input[type="url"],
+    textarea {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--input);
+      color: var(--text);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+    textarea { min-height: 120px; resize: vertical; font-family: inherit; }
+    input[type="color"] {
+      width: 100%;
+      height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px;
+      background: var(--input);
+      cursor: pointer;
+      margin-bottom: 0.5rem;
+    }
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .discord-msg {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 1rem 0;
+    }
+    .discord-embed {
+      background: var(--embed-bg);
+      border-left: 4px solid var(--accent);
+      border-radius: 4px;
+      padding: 0.75rem 1rem 0.75rem 0.75rem;
+      max-width: 100%;
+    }
+    .discord-embed .author {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+    .discord-embed .author img {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+    }
+    .discord-embed .title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .discord-embed .title a { color: #00a8fc; text-decoration: none; }
+    .discord-embed .desc {
+      font-size: 0.875rem;
+      color: #dbdee1;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .discord-embed .thumb {
+      float: right;
+      margin-left: 0.75rem;
+      margin-bottom: 0.5rem;
+      max-width: 80px;
+      max-height: 80px;
+      border-radius: 4px;
+    }
+    .discord-embed .bigimg {
+      margin-top: 0.75rem;
+      border-radius: 4px;
+      max-width: 100%;
+      display: block;
+    }
+    .discord-embed .footer {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+    .outputs {
+      padding: 1.25rem;
+      border-top: 1px solid var(--border);
+      background: var(--sidebar);
+    }
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .tabs button {
+      background: var(--input);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .tabs button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    pre {
+      background: #1e1f22;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow: auto;
+      font-size: 0.8rem;
+      max-height: 220px;
+      margin: 0 0 0.75rem;
+    }
+    .copy-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .copy-row button {
+      background: #248046;
+      border: none;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .copy-row button:hover { filter: brightness(1.08); }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Constructeur d’embed Discord</h1>
+    <p>Prévisualise, teste couleurs & emojis, puis copie le JSON ou le code <strong>discord.js</strong> (EmbedBuilder).</p>
+  </header>
+  <div class="wrap">
+    <div class="panel">
+      <label for="emojiTitle">Emoji / préfixe titre (optionnel)</label>
+      <input type="text" id="emojiTitle" placeholder="ex: 📌 ou :custom:" maxlength="80" />
+
+      <label for="title">Titre</label>
+      <input type="text" id="title" placeholder="Titre de l’embed" maxlength="256" />
+
+      <label for="titleUrl">Lien du titre (optionnel)</label>
+      <input type="url" id="titleUrl" placeholder="https://…" />
+
+      <label for="description">Description (markdown simple : **gras**, *italique*)</label>
+      <textarea id="description" placeholder="Texte principal…"></textarea>
+
+      <div class="row2">
+        <div>
+          <label for="color">Couleur</label>
+          <input type="color" id="color" value="#5865f2" />
+          <input type="text" id="colorHex" placeholder="5865F2" maxlength="7" />
+        </div>
+        <div>
+          <label for="author">Auteur (texte)</label>
+          <input type="text" id="author" placeholder="Nom" />
+          <label for="authorUrl" style="margin-top:0.5rem">URL icône auteur</label>
+          <input type="url" id="authorIcon" placeholder="https://…" />
+        </div>
+      </div>
+
+      <label for="footer">Pied de page</label>
+      <input type="text" id="footer" placeholder="Texte du footer" />
+
+      <label for="thumb">URL miniature (thumbnail)</label>
+      <input type="url" id="thumb" placeholder="https://…" />
+
+      <label for="image">URL image (grande)</label>
+      <input type="url" id="image" placeholder="https://…" />
+    </div>
+    <div class="panel preview-wrap">
+      <label style="margin-bottom:0.75rem">Aperçu (style proche Discord)</label>
+      <div class="discord-msg">
+        <div class="discord-embed" id="previewEmbed">
+          <div class="author" id="pvAuthor" style="display:none"></div>
+          <img class="thumb" id="pvThumb" style="display:none" alt="" />
+          <div class="title" id="pvTitle"></div>
+          <div class="desc" id="pvDesc"></div>
+          <img class="bigimg" id="pvImage" style="display:none" alt="" />
+          <div class="footer" id="pvFooter"></div>
+        </div>
+      </div>
+      <p class="hint">Les images externes doivent autoriser l’affichage (CORS peut bloquer l’aperçu img ; le bot Discord les affichera quand même si l’URL est valide).</p>
+    </div>
+  </div>
+  <div class="outputs">
+    <div class="tabs">
+      <button type="button" class="tab active" data-tab="json">JSON (API Discord)</button>
+      <button type="button" class="tab" data-tab="djs">discord.js (EmbedBuilder)</button>
+    </div>
+    <pre id="outJson"></pre>
+    <pre id="outDjs" style="display:none"></pre>
+    <div class="copy-row">
+      <button type="button" id="btnCopy">Copier la zone affichée</button>
+      <span id="copyOk" class="hint" style="display:none">Copié !</span>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const colorPicker = $("color");
+    const colorHex = $("colorHex");
+
+    function hexFromPicker() {
+      return colorPicker.value.replace("#", "").toUpperCase();
+    }
+    function syncHexFromPicker() {
+      colorHex.value = hexFromPicker();
+      update();
+    }
+    function syncPickerFromHex() {
+      let h = colorHex.value.replace(/^#/, "");
+      if (/^[0-9A-Fa-f]{6}$/.test(h)) {
+        colorPicker.value = "#" + h;
+      }
+      update();
+    }
+
+    colorPicker.addEventListener("input", syncHexFromPicker);
+    colorHex.addEventListener("input", syncPickerFromHex);
+
+    function parseMarkdownSimple(text) {
+      if (!text) return "";
+      return text
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>")
+        .replace(/\n/g, "<br/>");
+    }
+
+    function intColor(hex) {
+      const h = hex.replace(/^#/, "");
+      if (!/^[0-9A-Fa-f]{6}$/.test(h)) return 5793266;
+      return parseInt(h, 16);
+    }
+
+    function buildPayload() {
+      const emoji = $("emojiTitle").value.trim();
+      const titleRaw = $("title").value.trim();
+      const title = emoji ? emoji + " " + titleRaw : titleRaw;
+      const titleUrl = $("titleUrl").value.trim();
+      const description = $("description").value.trim();
+      const author = $("author").value.trim();
+      const authorIcon = $("authorIcon").value.trim();
+      const footer = $("footer").value.trim();
+      const thumb = $("thumb").value.trim();
+      const image = $("image").value.trim();
+      const color = intColor(colorHex.value || hexFromPicker());
+
+      const embed = { color };
+      if (title) embed.title = title;
+      if (titleUrl) embed.url = titleUrl;
+      if (description) embed.description = description;
+      if (footer) embed.footer = { text: footer };
+      if (author) embed.author = { name: author };
+      if (author && authorIcon) embed.author.icon_url = authorIcon;
+      if (thumb) embed.thumbnail = { url: thumb };
+      if (image) embed.image = { url: image };
+
+      return { embeds: [embed] };
+    }
+
+    function update() {
+      const emoji = $("emojiTitle").value.trim();
+      const titleRaw = $("title").value.trim();
+      const title = emoji ? emoji + " " + titleRaw : titleRaw;
+      const titleUrl = $("titleUrl").value.trim();
+      const description = $("description").value;
+      const author = $("author").value.trim();
+      const authorIcon = $("authorIcon").value.trim();
+      const footer = $("footer").value.trim();
+      const thumb = $("thumb").value.trim();
+      const image = $("image").value.trim();
+      const hex = (colorHex.value || hexFromPicker()).replace(/^#/, "");
+      const col = /^[0-9A-Fa-f]{6}$/.test(hex) ? "#" + hex : "#5865F2";
+
+      const box = $("previewEmbed");
+      box.style.borderLeftColor = col;
+
+      const au = $("pvAuthor");
+      if (author) {
+        au.style.display = "flex";
+        au.innerHTML =
+          (authorIcon
+            ? '<img src="' +
+              authorIcon.replace(/"/g, "") +
+              '" alt="" onerror="this.style.display=\'none\'" />'
+            : "") +
+          "<span>" +
+          author.replace(/</g, "&lt;") +
+          "</span>";
+      } else {
+        au.style.display = "none";
+        au.innerHTML = "";
+      }
+
+      const t = $("pvTitle");
+      if (title) {
+        if (titleUrl) {
+          t.innerHTML =
+            '<a href="' +
+            titleUrl.replace(/"/g, "") +
+            '" target="_blank" rel="noopener">' +
+            title.replace(/</g, "&lt;") +
+            "</a>";
+        } else {
+          t.textContent = title;
+        }
+        t.style.display = "block";
+      } else {
+        t.innerHTML = "";
+        t.style.display = "none";
+      }
+
+      $("pvDesc").innerHTML = parseMarkdownSimple(description) || '<span style="color:#949ba4">(description)</span>';
+
+      const th = $("pvThumb");
+      if (thumb) {
+        th.src = thumb;
+        th.style.display = "block";
+        th.onerror = () => (th.style.display = "none");
+      } else {
+        th.style.display = "none";
+        th.removeAttribute("src");
+      }
+
+      const im = $("pvImage");
+      if (image) {
+        im.src = image;
+        im.style.display = "block";
+        im.onerror = () => (im.style.display = "none");
+      } else {
+        im.style.display = "none";
+        im.removeAttribute("src");
+      }
+
+      const ft = $("pvFooter");
+      if (footer) {
+        ft.textContent = footer;
+        ft.style.display = "block";
+      } else {
+        ft.style.display = "none";
+      }
+
+      const payload = buildPayload();
+      $("outJson").textContent = JSON.stringify(payload, null, 2);
+
+      const e = payload.embeds[0];
+      const lines = [
+        "// CommonJS :",
+        "const { EmbedBuilder } = require('discord.js');",
+        "// ESM : import { EmbedBuilder } from 'discord.js';",
+        "",
+        "const embed = new EmbedBuilder()",
+      ];
+      if (e.color != null) lines.push(`  .setColor(0x${(e.color >>> 0).toString(16).padStart(6, "0")})`);
+      if (e.author?.name) {
+        lines.push(
+          e.author.icon_url
+            ? `  .setAuthor({ name: ${JSON.stringify(e.author.name)}, iconURL: ${JSON.stringify(e.author.icon_url)} })`
+            : `  .setAuthor({ name: ${JSON.stringify(e.author.name)} })`
+        );
+      }
+      if (e.title) lines.push(`  .setTitle(${JSON.stringify(e.title)})`);
+      if (e.url) lines.push(`  .setURL(${JSON.stringify(e.url)})`);
+      if (e.description) lines.push(`  .setDescription(${JSON.stringify(e.description)})`);
+      if (e.thumbnail?.url) lines.push(`  .setThumbnail(${JSON.stringify(e.thumbnail.url)})`);
+      if (e.image?.url) lines.push(`  .setImage(${JSON.stringify(e.image.url)})`);
+      if (e.footer?.text) lines.push(`  .setFooter({ text: ${JSON.stringify(e.footer.text)} })`);
+      lines.push(";");
+      lines.push("", "// channel.send({ embeds: [embed] })");
+      $("outDjs").textContent = lines.join("\n");
+    }
+
+    ["emojiTitle", "title", "titleUrl", "description", "author", "authorIcon", "footer", "thumb", "image"].forEach(
+      (id) => $(id).addEventListener("input", update)
+    );
+
+    document.querySelectorAll(".tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const tab = btn.dataset.tab;
+        $("outJson").style.display = tab === "json" ? "block" : "none";
+        $("outDjs").style.display = tab === "djs" ? "block" : "none";
+      });
+    });
+
+    $("btnCopy").addEventListener("click", async () => {
+      const tab = document.querySelector(".tab.active").dataset.tab;
+      const text = tab === "json" ? $("outJson").textContent : $("outDjs").textContent;
+      await navigator.clipboard.writeText(text);
+      $("copyOk").style.display = "inline";
+      setTimeout(() => ($("copyOk").style.display = "none"), 2000);
+    });
+
+    syncHexFromPicker();
+    update();
+  </script>
+</body>
+</html>

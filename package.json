@@ -1,0 +1,19 @@
+{
+  "name": "bot-gestion-staff",
+  "version": "1.0.0",
+  "description": "Bot staff Discord — modération, absences, rankup, MongoDB",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.8.3"
+  }
+}
