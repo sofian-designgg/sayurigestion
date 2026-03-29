@@ -21,6 +21,11 @@ import { incrementStaffMessage, buildStatsPayload } from '../services/rankup.js'
 import { buildHelpEmbeds } from '../utils/helpEmbeds.js';
 import { buildAbsenceAnnouncementEmbed, buildAbsenceButtonRow } from '../utils/absenceEmbed.js';
 import { handleCountingMessage } from '../services/countingChannel.js';
+import { ReactionRoleBinding } from '../database/models/ReactionRoleBinding.js';
+import {
+  parseDiscordMessageLink,
+  parseEmojiForReaction,
+} from '../utils/parseDiscordLink.js';
 
 const PREFIX = '-';
 
@@ -216,6 +221,88 @@ export async function handleMessageCreate(message, client) {
         guildId,
         type: 'channel',
       });
+      return;
+    }
+
+    if (name === 'setreactionrole') {
+      if (!need(1)) return;
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`rr_open:${guildId}`)
+          .setLabel('Lier emoji → rôle')
+          .setStyle(ButtonStyle.Primary)
+      );
+      await message.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle('Rôles par réaction')
+            .setDescription(
+              [
+                '1. Clique sur le bouton.',
+                '2. Colle le **lien du message** (clic droit → Copier le lien).',
+                '3. Indique l’**emoji** (unicode ou `<:nom:id>`).',
+                '4. Choisis le **rôle** dans le menu.',
+                '',
+                'Le bot ajoute la réaction sur le message. **Réagir** donne le rôle, **retirer** l’enlève.',
+                '· `-reactionrole list` — voir les liaisons.',
+                '· `-delreactionrole LIEN EMOJI` — supprimer une liaison.',
+              ].join('\n')
+            )
+            .setColor(0xeb459e),
+        ],
+        components: [row],
+      });
+      return;
+    }
+
+    if (name === 'reactionrole') {
+      if (!need(1)) return;
+      if (args[0]?.toLowerCase() !== 'list') {
+        await message.reply('Usage : `-reactionrole list`');
+        return;
+      }
+      const rows = await ReactionRoleBinding.find({ guildId }).lean();
+      if (!rows.length) {
+        await message.reply('Aucune liaison **emoji → rôle** sur ce serveur.');
+        return;
+      }
+      const lines = rows.map(
+        (r) =>
+          `· <#${r.channelId}> — message \`${r.messageId}\` — \`${r.emojiKey}\` → <@&${r.roleId}>`
+      );
+      const embed = new EmbedBuilder()
+        .setTitle('Liaisons rôle-réaction')
+        .setDescription(lines.join('\n').slice(0, 4000))
+        .setColor(0x5865f2);
+      await message.reply({ embeds: [embed] });
+      return;
+    }
+
+    if (name === 'delreactionrole') {
+      if (!need(1)) return;
+      const url = args[0];
+      const emojiPart = splitOnceRest(args.slice(1));
+      if (!url || !emojiPart) {
+        await message.reply('Usage : `-delreactionrole LIEN_DU_MESSAGE EMOJI`');
+        return;
+      }
+      const loc = parseDiscordMessageLink(url);
+      const em = parseEmojiForReaction(emojiPart);
+      if (!loc || loc.guildId !== guildId || !em) {
+        await message.reply('Lien ou emoji invalide.');
+        return;
+      }
+      const del = await ReactionRoleBinding.findOneAndDelete({
+        guildId,
+        channelId: loc.channelId,
+        messageId: loc.messageId,
+        emojiKey: em.key,
+      });
+      if (!del) {
+        await message.reply('Aucune liaison trouvée pour ce message et cet emoji.');
+        return;
+      }
+      await message.reply('Liaison **supprimée**. (Les réactions déjà présentes ne retirent plus le rôle automatiquement.)');
       return;
     }
 
@@ -531,7 +618,7 @@ export async function handleMessageCreate(message, client) {
       );
       await message.reply({
         content:
-          'Clique sur le bouton : tu pourras remplir **titre**, **description**, **couleur**, **footer**, **image**, puis choisir le **salon** d’envoi.',
+          'Clique sur le bouton : **titre**, **description**, **couleur**, **auteur**, puis **miniature | image | pied** (séparés par `|`), **horodatage** automatique, puis choix du **salon**.',
         components: [row],
       });
       return;

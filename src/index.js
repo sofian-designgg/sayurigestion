@@ -15,6 +15,10 @@ import { handleMessageCreate } from './handlers/messageCreate.js';
 import { handleInteractionCreate } from './handlers/interactionCreate.js';
 import { handleVoiceStateUpdate } from './handlers/voiceStateUpdate.js';
 import {
+  handleMessageReactionAdd,
+  handleMessageReactionRemove,
+} from './handlers/messageReaction.js';
+import {
   scheduleStatsRefresh,
   updateAllServerStatsChannels,
 } from './services/serverStatsChannels.js';
@@ -36,9 +40,10 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.DirectMessages,
   ],
-  partials: [Partials.Channel],
+  partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.User],
 });
 
 client.once('ready', () => {
@@ -60,6 +65,10 @@ client.on('presenceUpdate', (oldP, newP) => {
   const g = newP?.guild ?? oldP?.guild;
   if (g) scheduleStatsRefresh(g);
 });
+client.on('messageReactionAdd', (r, u) => handleMessageReactionAdd(r, u).catch(() => {}));
+client.on('messageReactionRemove', (r, u) =>
+  handleMessageReactionRemove(r, u).catch(() => {})
+);
 
 await client.login(token);
 

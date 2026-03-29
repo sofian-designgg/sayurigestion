@@ -22,6 +22,15 @@ import {
   createServerStatsVoiceChannels,
   updateGuildServerStats,
 } from '../services/serverStatsChannels.js';
+import { ReactionRoleBinding } from '../database/models/ReactionRoleBinding.js';
+import {
+  parseDiscordMessageLink,
+  parseEmojiForReaction,
+} from '../utils/parseDiscordLink.js';
+import {
+  setReactionRoleDraft,
+  takeReactionRoleDraft,
+} from '../services/reactionRoleDraft.js';
 
 async function safePower(member) {
   if (!member) return null;
@@ -185,26 +194,61 @@ async function handleButton(interaction, client) {
       .setMaxLength(7)
       .setPlaceholder('5865F2');
 
-    const f = new TextInputBuilder()
-      .setCustomId('emb_footer')
-      .setLabel('Pied de page (optionnel)')
+    const auth = new TextInputBuilder()
+      .setCustomId('emb_author')
+      .setLabel('Auteur (texte, optionnel)')
       .setStyle(TextInputStyle.Short)
       .setRequired(false)
-      .setMaxLength(2048);
+      .setMaxLength(256);
 
-    const img = new TextInputBuilder()
-      .setCustomId('emb_image')
-      .setLabel('URL image grande (optionnel)')
-      .setStyle(TextInputStyle.Short)
+    const extras = new TextInputBuilder()
+      .setCustomId('emb_extras')
+      .setLabel('Miniature | image | pied (séparateur |)')
+      .setStyle(TextInputStyle.Paragraph)
       .setRequired(false)
-      .setMaxLength(500);
+      .setMaxLength(1000)
+      .setPlaceholder('https://…thumb | https://…img | Texte du pied');
 
     modal.addComponents(
       new ActionRowBuilder().addComponents(t),
       new ActionRowBuilder().addComponents(d),
       new ActionRowBuilder().addComponents(c),
-      new ActionRowBuilder().addComponents(f),
-      new ActionRowBuilder().addComponents(img)
+      new ActionRowBuilder().addComponents(auth),
+      new ActionRowBuilder().addComponents(extras)
+    );
+
+    await interaction.showModal(modal);
+    return;
+  }
+
+  if (id.startsWith('rr_open:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la **cat. 1**.', ephemeral: true });
+      return;
+    }
+
+    const modal = new ModalBuilder().setCustomId(`rr_modal:${guildId}`).setTitle('Rôle-réaction');
+
+    const link = new TextInputBuilder()
+      .setCustomId('rr_link')
+      .setLabel('Lien du message Discord')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setPlaceholder('https://discord.com/channels/…/…/…');
+
+    const em = new TextInputBuilder()
+      .setCustomId('rr_emoji')
+      .setLabel('Emoji (unicode ou <:nom:id>)')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setMaxLength(100);
+
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(link),
+      new ActionRowBuilder().addComponents(em)
     );
 
     await interaction.showModal(modal);
@@ -291,6 +335,66 @@ async function handleRoleSelect(interaction, client) {
 
     await interaction.update({
       content: `Catégorie **${cat}** : ${roles.length ? roles.map((r) => `<@&${r}>`).join(', ') : '*(aucun rôle)*'}.`,
+      components: [],
+    });
+    return;
+  }
+
+  if (id.startsWith('rr_role:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la **cat. 1**.', ephemeral: true });
+      return;
+    }
+
+    const draft = takeReactionRoleDraft(interaction.user.id, guildId);
+    if (!draft) {
+      await interaction.update({
+        content: 'Session expirée. Refais **`-setreactionrole`**. ',
+        components: [],
+      });
+      return;
+    }
+
+    const roleId = interaction.values[0];
+    const guild = interaction.guild;
+
+    const ch = await guild.channels.fetch(draft.channelId).catch(() => null);
+    if (!ch?.isTextBased()) {
+      await interaction.update({ content: 'Salon du message introuvable.', components: [] });
+      return;
+    }
+
+    const msg = await ch.messages.fetch(draft.messageId).catch(() => null);
+    if (!msg) {
+      await interaction.update({ content: 'Message introuvable.', components: [] });
+      return;
+    }
+
+    await ReactionRoleBinding.findOneAndUpdate(
+      {
+        guildId,
+        channelId: draft.channelId,
+        messageId: draft.messageId,
+        emojiKey: draft.emojiKey,
+      },
+      {
+        guildId,
+        channelId: draft.channelId,
+        messageId: draft.messageId,
+        emojiKey: draft.emojiKey,
+        roleId,
+        reactString: draft.reactString,
+      },
+      { upsert: true }
+    );
+
+    await msg.react(draft.reactString).catch(() => {});
+
+    await interaction.update({
+      content: `**Rôle-réaction** enregistré : cet emoji → <@&${roleId}> (retirer la réaction enlève le rôle).`,
       components: [],
     });
     return;
@@ -386,7 +490,15 @@ async function handleChannelSelect(interaction, client) {
       .setTitle(draft.title)
       .setDescription(draft.description)
       .setColor(draft.color);
+    if (draft.authorName) embed.setAuthor({ name: draft.authorName });
     if (draft.footer) embed.setFooter({ text: draft.footer });
+    if (draft.thumbnailUrl) {
+      try {
+        embed.setThumbnail(draft.thumbnailUrl);
+      } catch {
+        /* ignore */
+      }
+    }
     if (draft.imageUrl) {
       try {
         embed.setImage(draft.imageUrl);
@@ -394,6 +506,7 @@ async function handleChannelSelect(interaction, client) {
         /* ignore */
       }
     }
+    if (draft.useTimestamp !== false) embed.setTimestamp();
 
     try {
       await ch.send({ embeds: [embed] });
@@ -558,6 +671,79 @@ async function handleChannelSelect(interaction, client) {
 async function handleModal(interaction, client) {
   const id = interaction.customId;
 
+  if (id.startsWith('rr_modal:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la **cat. 1**.', ephemeral: true });
+      return;
+    }
+
+    const linkRaw = interaction.fields.getTextInputValue('rr_link').trim();
+    const emojiRaw = interaction.fields.getTextInputValue('rr_emoji').trim();
+
+    const loc = parseDiscordMessageLink(linkRaw);
+    if (!loc || loc.guildId !== guildId) {
+      await interaction.reply({
+        content:
+          'Lien invalide ou **pas sur ce serveur**. Utilise un lien du type `https://discord.com/channels/ID_SERVEUR/ID_SALON/ID_MESSAGE` (clic droit sur le message → Copier le lien).',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const emoji = parseEmojiForReaction(emojiRaw);
+    if (!emoji) {
+      await interaction.reply({
+        content:
+          'Emoji invalide. Envoie un **émoji unicode** ou la forme **`<:nom:id>`** / **`<a:nom:id>`** pour un émoji personnalisé.',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const guild = interaction.guild;
+    const ch = await guild.channels.fetch(loc.channelId).catch(() => null);
+    if (!ch?.isTextBased()) {
+      await interaction.reply({ content: 'Salon du message introuvable ou pas un salon texte.', ephemeral: true });
+      return;
+    }
+
+    const msg = await ch.messages.fetch(loc.messageId).catch(() => null);
+    if (!msg) {
+      await interaction.reply({
+        content: 'Message introuvable (vérifie les droits du bot sur ce salon).',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    setReactionRoleDraft(interaction.user.id, guildId, {
+      channelId: loc.channelId,
+      messageId: loc.messageId,
+      emojiKey: emoji.key,
+      reactString: emoji.react,
+    });
+
+    const row = new ActionRowBuilder().addComponents(
+      new RoleSelectMenuBuilder()
+        .setCustomId(`rr_role:${guildId}`)
+        .setPlaceholder('Rôle donné quand on réagit')
+        .setMinValues(1)
+        .setMaxValues(1)
+    );
+
+    await interaction.reply({
+      content:
+        'Choisis le **rôle** à attribuer quand quelqu’un met cette réaction sur le message (retirer la réaction enlève le rôle).',
+      components: [row],
+      ephemeral: true,
+    });
+    void client;
+    return;
+  }
+
   if (id.startsWith('absence_modal:')) {
     const guildId = id.split(':')[1];
     const cfg = await GuildConfig.findOne({ guildId });
@@ -704,28 +890,59 @@ async function handleModal(interaction, client) {
       if (!Number.isNaN(n) && n >= 0 && n <= 0xffffff) color = n;
     }
 
-    const footer = interaction.fields.getTextInputValue('emb_footer')?.trim() || '';
-    const imageRaw = interaction.fields.getTextInputValue('emb_image')?.trim() || '';
-    let imageUrl = '';
-    if (imageRaw) {
+    const authorName = interaction.fields.getTextInputValue('emb_author')?.trim() || '';
+    const extrasRaw = interaction.fields.getTextInputValue('emb_extras')?.trim() || '';
+    const parts = extrasRaw.split('|').map((s) => s.trim());
+    const thumbRaw = parts[0] || '';
+    const imgRaw = parts[1] || '';
+    const footer = parts[2] || '';
+
+    function checkUrl(label, s) {
+      if (!s) return '';
       try {
-        const u = new URL(imageRaw);
-        if (u.protocol === 'http:' || u.protocol === 'https:') imageUrl = imageRaw;
+        const u = new URL(s);
+        if (u.protocol === 'http:' || u.protocol === 'https:') return s;
       } catch {
+        return null;
+      }
+      return null;
+    }
+
+    let thumbnailUrl = '';
+    if (thumbRaw) {
+      const v = checkUrl('miniature', thumbRaw);
+      if (v === null) {
         await interaction.reply({
-          content: 'URL d’image invalide (utilise http/https).',
+          content: 'URL **miniature** invalide (http/https).',
           ephemeral: true,
         });
         return;
       }
+      thumbnailUrl = v;
+    }
+
+    let imageUrl = '';
+    if (imgRaw) {
+      const v = checkUrl('image', imgRaw);
+      if (v === null) {
+        await interaction.reply({
+          content: 'URL **image** invalide (http/https).',
+          ephemeral: true,
+        });
+        return;
+      }
+      imageUrl = v;
     }
 
     setEmbedDraft(interaction.user.id, guildId, {
       title,
       description,
       color,
+      authorName,
       footer,
+      thumbnailUrl,
       imageUrl,
+      useTimestamp: true,
     });
 
     const row = new ActionRowBuilder().addComponents(

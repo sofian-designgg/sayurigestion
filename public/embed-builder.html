@@ -31,6 +31,22 @@
     }
     header h1 { margin: 0; font-size: 1.25rem; }
     header p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.9rem; }
+    header .header-note {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      background: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      color: var(--text);
+    }
+    header .header-note code {
+      background: #111214;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
     .wrap {
       display: grid;
       grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.1fr);
@@ -193,12 +209,30 @@
     }
     .copy-row button:hover { filter: brightness(1.08); }
     .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
+    .chk-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .chk-row input { width: auto; cursor: pointer; }
+    .discord-embed .ts {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>Constructeur d’embed Discord</h1>
-    <p>Prévisualise, teste couleurs & emojis, puis copie le JSON ou le code <strong>discord.js</strong> (EmbedBuilder).</p>
+    <p>Prévisualise, teste couleurs & emojis, puis copie le <strong>JSON</strong> (webhook / API) ou le code <strong>discord.js</strong> (<code>EmbedBuilder</code>).</p>
+    <p class="header-note">
+      <strong>Bot Sayuri :</strong> la commande <code>-embed</code> sur Discord reprend la même idée : titre, description, couleur, auteur, puis une seule zone
+      <strong>miniature | image | pied</strong> (séparateur <code>|</code>) + <strong>horodatage</strong> automatique. Ici tu as les champs séparés pour gagner en clarté.
+    </p>
   </header>
   <div class="wrap">
     <div class="panel">
@@ -236,6 +270,11 @@
 
       <label for="image">URL image (grande)</label>
       <input type="url" id="image" placeholder="https://…" />
+
+      <label class="chk-row">
+        <input type="checkbox" id="useTimestamp" checked />
+        Horodatage (date en bas de l’embed, comme sur Discord)
+      </label>
     </div>
     <div class="panel preview-wrap">
       <label style="margin-bottom:0.75rem">Aperçu (style proche Discord)</label>
@@ -247,9 +286,13 @@
           <div class="desc" id="pvDesc"></div>
           <img class="bigimg" id="pvImage" style="display:none" alt="" />
           <div class="footer" id="pvFooter"></div>
+          <div class="ts" id="pvTs" style="display:none"></div>
         </div>
       </div>
-      <p class="hint">Les images externes doivent autoriser l’affichage (CORS peut bloquer l’aperçu img ; le bot Discord les affichera quand même si l’URL est valide).</p>
+      <p class="hint">
+        CORS peut bloquer l’aperçu des images ici ; sur Discord le bot affichera les URLs valides.
+        Pour <strong>publier</strong> sur ton serveur sans code : utilise <code>-embed</code> sur Discord (même déploiement Railway : page <code>/embed-builder</code>).
+      </p>
     </div>
   </div>
   <div class="outputs">
@@ -324,6 +367,7 @@
       if (author && authorIcon) embed.author.icon_url = authorIcon;
       if (thumb) embed.thumbnail = { url: thumb };
       if (image) embed.image = { url: image };
+      if ($("useTimestamp").checked) embed.timestamp = new Date().toISOString();
 
       return { embeds: [embed] };
     }
@@ -410,6 +454,14 @@
         ft.style.display = "none";
       }
 
+      const tsEl = $("pvTs");
+      if ($("useTimestamp").checked) {
+        tsEl.style.display = "block";
+        tsEl.textContent = "Aujourd’hui à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      } else {
+        tsEl.style.display = "none";
+      }
+
       const payload = buildPayload();
       $("outJson").textContent = JSON.stringify(payload, null, 2);
 
@@ -435,6 +487,7 @@
       if (e.thumbnail?.url) lines.push(`  .setThumbnail(${JSON.stringify(e.thumbnail.url)})`);
       if (e.image?.url) lines.push(`  .setImage(${JSON.stringify(e.image.url)})`);
       if (e.footer?.text) lines.push(`  .setFooter({ text: ${JSON.stringify(e.footer.text)} })`);
+      if ($("useTimestamp").checked) lines.push("  .setTimestamp(new Date())");
       lines.push(";");
       lines.push("", "// channel.send({ embeds: [embed] })");
       $("outDjs").textContent = lines.join("\n");
@@ -443,6 +496,7 @@
     ["emojiTitle", "title", "titleUrl", "description", "author", "authorIcon", "footer", "thumb", "image"].forEach(
       (id) => $(id).addEventListener("input", update)
     );
+    $("useTimestamp").addEventListener("change", update);
 
     document.querySelectorAll(".tab").forEach((btn) => {
       btn.addEventListener("click", () => {

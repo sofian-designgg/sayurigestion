@@ -24,6 +24,7 @@ export function buildHelpEmbeds() {
         '**`-setchannelrank`** — Salon où le bot **mentionne** le staff et poste un **embed** à chaque rankup automatique.',
         '**`-setcatserveurinfo`** — Choisir une **catégorie** : crée **5 salons vocaux** affichage seule (membres, en ligne, en vocal, boost, lien .gg/sayuri), **mis à jour** en continu.',
         '**`-setchannelcompeut`** — Définit le salon où l’on compte **1, 2, 3…** sans se tromper : **✅** si bon, **❌** + reset si erreur.',
+        '**`-setreactionrole`** — Bouton puis formulaire : **lien du message** + **emoji** + **rôle** ; réagir donne le rôle, enlever la réaction l’ôte. Voir aussi `-reactionrole list` et `-delreactionrole`.',
         '**`-listrankstaff`** — Liste tous les **paliers** rankup + menu pour **supprimer** la config d’un rôle.',
         '**`-absencesync`** — Renvoie l’**embed d’absence** dans le salon configuré (utile après édition).',
       ].join('\n\n')
@@ -63,7 +64,7 @@ export function buildHelpEmbeds() {
     .setColor(0x99aab5)
     .setDescription(
       [
-        '**`-embed`** — Créer un **embed** (bouton → formulaire → choix du salon). **Tout le staff** (cat. 1 à 5) peut l’utiliser.',
+        '**`-embed`** — Bouton → formulaire (**titre, description, couleur, auteur**, puis **miniature | image | pied** avec `|`) → salon. **Horodatage** inclus. **Tout le staff** (cat. 1 à 5).',
         '**`-warn @membre raison`** — Warn. Si tu es **seulement** en cat. 5, le warn part en **validation** (cat. 1–4 dans les logs). Sinon il est **appliqué** tout de suite.',
         '**`-mute`** / **`-timeout @membre 10m raison`** — **Timeout** Discord (durées : `s`, `m`, `h`, `d`, max 28 j).',
         '**`-warns @membre`** — Liste les **warns** enregistrés pour ce membre.',
@@ -79,7 +80,8 @@ export function buildHelpEmbeds() {
       [
         '· **Absence** : configurer **les deux** salons (`-setabsencechannel` + `-setabsenceinfo`) avant utilisation.',
         '· **Rankup** : compteurs pour les membres **staff** (rôle cat.) ou ayant un **rôle palier**.',
-        '· **Stats vocales** (`-setcatserveurinfo`) : activer aussi **PRESENCE INTENT** sur le portail Discord pour le compteur **En ligne**.',
+        '· **Stats vocales** (`-setcatserveurinfo`) : **PRESENCE INTENT** sur le portail pour **En ligne**.',
+        '· **Rôles-réaction** : activer **MESSAGE CONTENT INTENT** (déjà) + **SERVER MEMBERS** ; ajouter **GUILD MESSAGE REACTIONS** (intent « réactions ») pour que le bot voie les réactions.',
         '· **Outil embed (HTML)** : URL `https://TON_DOMAINE_RAILWAY/embed-builder` (même **PORT** que le bot) — prévisualisation, couleur, emoji, copie **JSON** ou **discord.js**. En local : `http://localhost:3000/embed-builder`.',
       ].join('\n')
     );
