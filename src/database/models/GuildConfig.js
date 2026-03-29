@@ -30,6 +30,8 @@ const guildConfigSchema = new mongoose.Schema({
   /** Dernier nombre valide (0 = le prochain doit être 1). */
   countingLastNumber: { type: Number, default: 0 },
   categoryRoles: { type: categoryRolesSchema, default: () => ({}) },
+  /** Rôles réattribués après un rankup s’ils manquent (ex. apprenti). */
+  rankupForeverRoleIds: { type: [String], default: [] },
 });
 
 export const GuildConfig = mongoose.model('GuildConfig', guildConfigSchema);

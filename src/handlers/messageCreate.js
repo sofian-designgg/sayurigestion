@@ -95,22 +95,25 @@ export async function handleMessageCreate(message, client) {
     if (name === 'panelcat') {
       if (!need(1)) return;
 
-      const embeds = [1, 2, 3, 4, 5].map((n) =>
-        new EmbedBuilder()
+      const panelHint =
+        '\n\n_Plusieurs rôles : chaque **Cat. n** ouvre un menu où les rôles **déjà enregistrés sont pré-cochés** — coche **tous** ceux que tu veux garder **plus** les nouveaux, puis valide (sinon un seul rôle coché = les autres sont retirés de la catégorie)._';
+
+      const embeds = [1, 2, 3, 4, 5].map((n) => {
+        const base =
+          n === 1
+            ? 'Niveau maximum — configuration bot, panneaux, logs.'
+            : n === 2
+              ? 'Administration lourde (ban, structure…).'
+              : n === 3
+                ? 'Modération standard (timeout, validation warns…).'
+                : n === 4
+                  ? 'Modération légère / support.'
+                  : 'Entrée de gamme — mute texte, warns (validation requise).';
+        return new EmbedBuilder()
           .setTitle(`Catégorie ${n}`)
-          .setDescription(
-            n === 1
-              ? 'Niveau maximum — configuration bot, panneaux, logs.'
-              : n === 2
-                ? 'Administration lourde (ban, structure…).'
-                : n === 3
-                  ? 'Modération standard (timeout, validation warns…).'
-                  : n === 4
-                    ? 'Modération légère / support.'
-                    : 'Entrée de gamme — mute texte, warns (validation requise).'
-          )
-          .setColor(0x5865f2)
-      );
+          .setDescription(n === 1 ? base + panelHint : base)
+          .setColor(0x5865f2);
+      });
 
       const row = new ActionRowBuilder().addComponents(
         [1, 2, 3, 4, 5].map((cat) =>
@@ -304,6 +307,68 @@ export async function handleMessageCreate(message, client) {
         return;
       }
       await message.reply('Liaison **supprimée**. (Les réactions déjà présentes ne retirent plus le rôle automatiquement.)');
+      return;
+    }
+
+    if (name === 'foreverrole') {
+      if (!need(1)) return;
+      const sub = args[0]?.toLowerCase();
+      const cfg = await GuildConfig.findOne({ guildId });
+      const ids = cfg?.rankupForeverRoleIds?.length ? [...cfg.rankupForeverRoleIds] : [];
+
+      if (sub === 'clear') {
+        await GuildConfig.findOneAndUpdate(
+          { guildId },
+          { $set: { rankupForeverRoleIds: [] }, $setOnInsert: { guildId } },
+          { upsert: true }
+        );
+        await message.reply('Liste **forever** vidée : aucun rôle ne sera resynchronisé après rankup.');
+        return;
+      }
+
+      const lines =
+        ids.length > 0
+          ? ids.map((rid) => `· <@&${rid}>`).join('\n')
+          : '*(aucun — utilise le menu **Ajouter**)*';
+
+      const embed = new EmbedBuilder()
+        .setTitle('Rôles conservés au rankup (-foreverrole)')
+        .setDescription(
+          [
+            'Ici tu définis des rôles (ex. **apprenti staff**) que le bot **garde** : au **rankup**, ce bot **ne retire** aucun rôle ; les paliers **s’ajoutent**.',
+            '',
+            'Après chaque **nouveau** palier gagné, le bot **réattribue** ces rôles s’ils **manquent** encore (retrait manuel, autre bot, etc.).',
+            '',
+            '**Rôles configurés**',
+            lines,
+            '',
+            '**`-foreverrole clear`** — vider toute la liste.',
+          ].join('\n')
+        )
+        .setColor(0x57f287);
+
+      const rowAdd = new ActionRowBuilder().addComponents(
+        new RoleSelectMenuBuilder()
+          .setCustomId(`foreverrole_add:${guildId}`)
+          .setPlaceholder('Ajouter un rôle à conserver')
+          .setMinValues(1)
+          .setMaxValues(1)
+      );
+
+      const components = [rowAdd];
+      if (ids.length > 0) {
+        components.push(
+          new ActionRowBuilder().addComponents(
+            new RoleSelectMenuBuilder()
+              .setCustomId(`foreverrole_del:${guildId}`)
+              .setPlaceholder('Retirer un rôle de cette liste')
+              .setMinValues(1)
+              .setMaxValues(1)
+          )
+        );
+      }
+
+      await message.reply({ embeds: [embed], components });
       return;
     }
 

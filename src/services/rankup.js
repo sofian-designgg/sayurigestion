@@ -28,6 +28,21 @@ async function announceRankup(member, tier) {
   await ch.send({ content: `${member}`, embeds: [embed] }).catch(() => {});
 }
 
+/** Réattribue les rôles « forever » après un rankup (ex. apprenti conservé). */
+async function ensureRankupForeverRoles(member) {
+  const cfg = await GuildConfig.findOne({ guildId: member.guild.id }).lean();
+  const ids = [...new Set(cfg?.rankupForeverRoleIds || [])];
+  if (!ids.length) return;
+
+  const fresh = await member.guild.members.fetch(member.id).catch(() => null);
+  if (!fresh) return;
+
+  for (const rid of ids) {
+    if (fresh.roles.cache.has(rid)) continue;
+    await fresh.roles.add(rid, 'Rôle conservé au rankup (-foreverrole)').catch(() => {});
+  }
+}
+
 async function isTrackableStaff(member) {
   if ((await getUserPower(member)) !== null) return true;
   const tiers = await RankTier.find({ guildId: member.guild.id }).lean();
@@ -74,16 +89,20 @@ export async function tryRankup(member) {
   const voice = stats?.voiceMinutes ?? 0;
   const msgs = stats?.messageCount ?? 0;
 
+  let anyTierAdded = false;
   for (const t of tiers) {
     if (member.roles.cache.has(t.roleId)) continue;
     if (voice < t.voiceMinutesRequired || msgs < t.messagesRequired) continue;
     try {
       await member.roles.add(t.roleId, 'Rankup automatique (objectifs vocaux + messages)');
+      anyTierAdded = true;
       await announceRankup(member, t);
     } catch {
       /* manque de perms / hiérarchie */
     }
   }
+
+  if (anyTierAdded) await ensureRankupForeverRoles(member);
 }
 
 /** Stats affichées pour -statsstaff */

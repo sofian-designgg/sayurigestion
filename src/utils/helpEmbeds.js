@@ -16,11 +16,12 @@ export function buildHelpEmbeds() {
     .setColor(0xed4245)
     .setDescription(
       [
-        '**`-panelcat`** — Panneau : 5 embeds (une par catégorie) + boutons pour assigner les **rôles** de chaque catégorie (menu, pas d’ID à taper).',
+        '**`-panelcat`** — Panneau : 5 catégories + menus **rôles**. Plusieurs rôles par cat. : le menu **pré-coche** les déjà enregistrés — garde-les cochés et **ajoute** les autres avant de valider (sinon la liste est remplacée par la seule sélection).',
         '**`-setadminlogs`** — Choisir le salon des **logs** de modération (timeouts, warns, validations…).',
         '**`-setabsencechannel`** — Salon de l’**embed d’absence** (bouton → MP → formulaire **durée + raison** ; pseudo / rôles remplis par le bot).',
         '**`-setabsenceinfo`** — Salon où arrivent les **réponses** d’absence (mention + réactions ✅❌).',
         '**`-setrankstaff`** — Choisir un **rôle**, puis indiquer **minutes vocal** et **messages** requis pour le rankup auto.',
+        '**`-foreverrole`** — Rôles **conservés** (ex. apprenti) : le rankup **ajoute** les paliers sans retirer les autres ; après chaque palier gagné, le bot **réattribue** ces rôles s’ils manquent. **`-foreverrole clear`** vide la liste.',
         '**`-setchannelrank`** — Salon où le bot **mentionne** le staff et poste un **embed** à chaque rankup automatique.',
         '**`-setcatserveurinfo`** — Choisir une **catégorie** : crée **5 salons vocaux** affichage seule (membres, en ligne, en vocal, boost, lien .gg/sayuri), **mis à jour** en continu.',
         '**`-setchannelcompeut`** — Définit le salon où l’on compte **1, 2, 3…** sans se tromper : **✅** si bon, **❌** + reset si erreur.',
@@ -80,7 +81,7 @@ export function buildHelpEmbeds() {
     .setDescription(
       [
         '· **Absence** : configurer **les deux** salons (`-setabsencechannel` + `-setabsenceinfo`) avant utilisation.',
-        '· **Rankup** : compteurs pour les membres **staff** (rôle cat.) ou ayant un **rôle palier**.',
+        '· **Rankup** : compteurs pour les membres **staff** (rôle cat.) ou ayant un **rôle palier**. **Forever** : `-foreverrole` pour garder un rôle (ex. apprenti) même après paliers suivants.',
         '· **Stats vocales** (`-setcatserveurinfo`) : **PRESENCE INTENT** sur le portail pour **En ligne**.',
         '· **Rôles-réaction** : activer **MESSAGE CONTENT INTENT** (déjà) + **SERVER MEMBERS** ; ajouter **GUILD MESSAGE REACTIONS** (intent « réactions ») pour que le bot voie les réactions.',
         '· **Outil embed (HTML)** : URL `https://TON_DOMAINE_RAILWAY/embed-builder` (même **PORT** que le bot) — prévisualisation, couleur, emoji, copie **JSON** ou **discord.js**. En local : `http://localhost:3000/embed-builder`.',

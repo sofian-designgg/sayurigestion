@@ -78,16 +78,30 @@ async function handleButton(interaction, client) {
       return;
     }
 
-    const row = new ActionRowBuilder().addComponents(
-      new RoleSelectMenuBuilder()
-        .setCustomId(`panelcat_roles:${cat}:${guildId}`)
-        .setPlaceholder(`Rôles — catégorie ${cat} (0–25)`)
-        .setMinValues(0)
-        .setMaxValues(25)
-    );
+    await interaction.guild.roles.fetch().catch(() => {});
+    const cfg = await GuildConfig.findOne({ guildId }).lean();
+    const raw = cfg?.categoryRoles?.[`cat${cat}`] || [];
+    const existing = raw
+      .filter((rid) => interaction.guild.roles.cache.has(rid))
+      .slice(0, 25);
+
+    const menu = new RoleSelectMenuBuilder()
+      .setCustomId(`panelcat_roles:${cat}:${guildId}`)
+      .setPlaceholder(`Rôles — catégorie ${cat} (0–25)`)
+      .setMinValues(0)
+      .setMaxValues(25);
+
+    if (existing.length) menu.setDefaultRoles(...existing);
+
+    const row = new ActionRowBuilder().addComponents(menu);
 
     await interaction.reply({
-      content: `Choisis les rôles pour la **catégorie ${cat}** (tu peux en retirer tous pour vider).`,
+      content: [
+        `Choisis les rôles pour la **catégorie ${cat}**.`,
+        '',
+        '**Ta sélection remplace toute la liste** : les rôles déjà enregistrés sont **pré-sélectionnés** — ajoute les nouveaux **en plus** (sans désélectionner les anciens), puis valide.',
+        'Pour **vider** la catégorie, enlève toutes les coches et valide.',
+      ].join('\n'),
       components: [row],
       ephemeral: true,
     });
@@ -330,7 +344,10 @@ async function handleRoleSelect(interaction, client) {
     const roles = interaction.values;
     await GuildConfig.findOneAndUpdate(
       { guildId },
-      { $set: { [`categoryRoles.cat${cat}`]: roles } },
+      {
+        $set: { [`categoryRoles.cat${cat}`]: roles },
+        $setOnInsert: { guildId },
+      },
       { upsert: true, new: true }
     );
 
@@ -437,6 +454,50 @@ async function handleRoleSelect(interaction, client) {
     );
 
     await interaction.showModal(modal);
+    return;
+  }
+
+  if (id.startsWith('foreverrole_add:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+
+    const roleId = interaction.values[0];
+    await GuildConfig.findOneAndUpdate(
+      { guildId },
+      { $setOnInsert: { guildId }, $addToSet: { rankupForeverRoleIds: roleId } },
+      { upsert: true }
+    );
+    await interaction.reply({
+      content: `<@&${roleId}> est dans la liste **forever** : conservé / resynchronisé après rankup.`,
+      ephemeral: true,
+    });
+    return;
+  }
+
+  if (id.startsWith('foreverrole_del:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+
+    const roleId = interaction.values[0];
+    const before = await GuildConfig.findOne({ guildId }).lean();
+    const had = before?.rankupForeverRoleIds?.includes(roleId);
+    await GuildConfig.updateOne({ guildId }, { $pull: { rankupForeverRoleIds: roleId } });
+    await interaction.reply({
+      content: had
+        ? `<@&${roleId}> retiré de la liste **forever**.`
+        : 'Ce rôle n’était pas dans la liste.',
+      ephemeral: true,
+    });
     return;
   }
 
