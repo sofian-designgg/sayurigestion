@@ -27,6 +27,8 @@ import {
   parseDiscordMessageLink,
   parseEmojiForReaction,
 } from '../utils/parseDiscordLink.js';
+import { setJsonDraft } from '../utils/jsonMessageDraft.js';
+import { parseDiscordJsonMessage } from '../utils/parseDiscordJsonMessage.js';
 
 const PREFIX = '-';
 
@@ -817,6 +819,61 @@ export async function handleMessageCreate(message, client) {
       await message.reply({
         content:
           'Choisis le salon où **publier** ou **mettre à jour** le panneau (même salon = édition du message du bot si possible).',
+        components: [row],
+      });
+      return;
+    }
+
+    if (name === 'json') {
+      if (!need(1)) return;
+      const ctx = {
+        userId: message.author.id,
+        username: message.author.username,
+        guildName: message.guild.name,
+        guildId: message.guild.id,
+      };
+
+      const att = message.attachments.first();
+      const isJsonFile =
+        att &&
+        (att.name?.toLowerCase().endsWith('.json') ||
+          att.contentType === 'application/json' ||
+          att.contentType === 'text/plain');
+
+      if (isJsonFile) {
+        const text = await fetch(att.url).then((r) => r.text());
+        const parsed = parseDiscordJsonMessage(text, ctx);
+        if (parsed.error) {
+          await message.reply(`JSON invalide : ${parsed.error}`);
+          return;
+        }
+        setJsonDraft(message.author.id, guildId, text);
+        const row = new ActionRowBuilder().addComponents(
+          new ChannelSelectMenuBuilder()
+            .setCustomId(`json_dest:${guildId}`)
+            .setPlaceholder('Salon où envoyer le message')
+            .setChannelTypes([ChannelType.GuildText, ChannelType.GuildAnnouncement])
+        );
+        await message.reply({
+          content: '**Fichier JSON valide.** Choisis le **salon** cible.',
+          components: [row],
+        });
+        return;
+      }
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`json_open:${guildId}`)
+          .setLabel('Coller le JSON (modal)')
+          .setStyle(ButtonStyle.Primary)
+      );
+      await message.reply({
+        content: [
+          'Envoie **\-json** avec un **fichier .json** en pièce jointe, **ou** clique sur le bouton (max **4000** caractères dans le modal).',
+          '',
+          'Structure : **`content`**, **`embed`** (ou **`embeds`**), **`components`** ou **`component`** — boutons **lien** uniquement (API **style: 5**).',
+          '**Placeholders** : `{user}`, `{username}`, `{guild}`, `{guild.id}`.',
+        ].join('\n'),
         components: [row],
       });
       return;

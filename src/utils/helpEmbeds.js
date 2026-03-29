@@ -31,6 +31,7 @@ export function buildHelpEmbeds() {
         '**`-ticketcat`** — Menus : **catégorie** des salons tickets + **rôle staff** (voir les tickets).',
         '**`-ticketembed`** — Bouton → coller le **JSON** du constructeur web **`/ticket-builder`** (embed + **plusieurs boutons**).',
         '**`-ticketsync`** — Choisir le **salon** : envoie ou **met à jour** le panneau tickets.',
+        '**`-json`** — Publie un message depuis un **JSON** (content + embed + boutons **lien**). Fichier **.json** joint **ou** bouton pour coller → choix du salon. Placeholders `{user}`, `{guild}`, etc.',
         '**`-absencesync`** — Renvoie l’**embed d’absence** dans le salon configuré (utile après édition).',
       ].join('\n\n')
     );

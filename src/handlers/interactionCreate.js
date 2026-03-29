@@ -37,6 +37,8 @@ import {
   syncTicketPanelMessage,
 } from '../services/tickets.js';
 import { validateTicketPanelJson } from '../utils/ticketPanel.js';
+import { setJsonDraft, takeJsonDraft } from '../utils/jsonMessageDraft.js';
+import { parseDiscordJsonMessage } from '../utils/parseDiscordJsonMessage.js';
 
 async function safePower(member) {
   if (!member) return null;
@@ -107,6 +109,31 @@ async function handleButton(interaction, client) {
     const j = new TextInputBuilder()
       .setCustomId('ticket_json')
       .setLabel('Colle le JSON (page /ticket-builder)')
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(true)
+      .setMaxLength(4000);
+
+    modal.addComponents(new ActionRowBuilder().addComponents(j));
+    await interaction.showModal(modal);
+    return;
+  }
+
+  if (id.startsWith('json_open:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+
+    const modal = new ModalBuilder()
+      .setCustomId(`json_modal:${guildId}`)
+      .setTitle('Message JSON (embed + boutons lien)');
+
+    const j = new TextInputBuilder()
+      .setCustomId('json_payload')
+      .setLabel('Colle le JSON (content, embed, component(s))')
       .setStyle(TextInputStyle.Paragraph)
       .setRequired(true)
       .setMaxLength(4000);
@@ -640,6 +667,57 @@ async function handleChannelSelect(interaction, client) {
     return;
   }
 
+  if (id === `json_dest:${guildId}`) {
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+
+    const raw = takeJsonDraft(interaction.user.id, guildId);
+    if (!raw) {
+      await interaction.update({
+        content: 'Brouillon expiré ou introuvable. Refais **\-json**. ',
+        components: [],
+      });
+      return;
+    }
+
+    const ctx = {
+      userId: interaction.user.id,
+      username: interaction.user.username,
+      guildName: interaction.guild.name,
+      guildId: interaction.guild.id,
+    };
+    const parsed = parseDiscordJsonMessage(raw, ctx);
+    if (parsed.error) {
+      await interaction.update({
+        content: `JSON invalide : ${parsed.error}`,
+        components: [],
+      });
+      return;
+    }
+
+    const ch = await interaction.guild.channels.fetch(channelId).catch(() => null);
+    if (!ch?.isTextBased()) {
+      await interaction.update({ content: 'Salon invalide.', components: [] });
+      return;
+    }
+
+    try {
+      await ch.send(parsed.payload);
+      await interaction.update({
+        content: `Message envoyé dans <#${channelId}>.`,
+        components: [],
+      });
+    } catch (e) {
+      await interaction.update({
+        content: `Impossible d’envoyer : ${e.message}`,
+        components: [],
+      });
+    }
+    return;
+  }
+
   if (id === `embed_dest:${guildId}`) {
     if (!canUseCommand(power, 5)) {
       await interaction.reply({ content: 'Réservé au **staff**.', ephemeral: true });
@@ -845,6 +923,46 @@ async function handleChannelSelect(interaction, client) {
 
 async function handleModal(interaction, client) {
   const id = interaction.customId;
+
+  if (id.startsWith('json_modal:')) {
+    const guildId = id.split(':')[1];
+    if (interaction.guildId !== guildId) return;
+    const power = await safePower(interaction.member);
+    if (!canUseCommand(power, 1)) {
+      await interaction.reply({ content: 'Réservé à la cat. 1.', ephemeral: true });
+      return;
+    }
+
+    const raw = interaction.fields.getTextInputValue('json_payload').trim();
+    const ctx = {
+      userId: interaction.user.id,
+      username: interaction.user.username,
+      guildName: interaction.guild.name,
+      guildId: interaction.guild.id,
+    };
+    const parsed = parseDiscordJsonMessage(raw, ctx);
+    if (parsed.error) {
+      await interaction.reply({ content: parsed.error, ephemeral: true });
+      return;
+    }
+
+    setJsonDraft(interaction.user.id, guildId, raw);
+
+    const row = new ActionRowBuilder().addComponents(
+      new ChannelSelectMenuBuilder()
+        .setCustomId(`json_dest:${guildId}`)
+        .setPlaceholder('Salon où envoyer le message')
+        .setChannelTypes([ChannelType.GuildText, ChannelType.GuildAnnouncement])
+    );
+
+    await interaction.reply({
+      content:
+        '**JSON valide.** Choisis le **salon** cible. Placeholders : `{user}`, `{username}`, `{guild}`, `{guild.id}`.',
+      components: [row],
+      ephemeral: true,
+    });
+    return;
+  }
 
   if (id.startsWith('ticketembed_modal:')) {
     const guildId = id.split(':')[1];
