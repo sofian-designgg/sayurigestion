@@ -20,6 +20,7 @@ import { parseUserMention, parseDuration } from '../utils/parseArgs.js';
 import { incrementStaffMessage, buildStatsPayload } from '../services/rankup.js';
 import { buildHelpEmbeds } from '../utils/helpEmbeds.js';
 import { buildAbsenceAnnouncementEmbed, buildAbsenceButtonRow } from '../utils/absenceEmbed.js';
+import { handleCountingMessage } from '../services/countingChannel.js';
 
 const PREFIX = '-';
 
@@ -36,13 +37,20 @@ async function replyComponentPanel(message, { embed, customIdPrefix, guildId, ty
             .setPlaceholder('Choisis un salon')
             .setChannelTypes([ChannelType.GuildText, ChannelType.GuildAnnouncement])
         )
-      : new ActionRowBuilder().addComponents(
-          new RoleSelectMenuBuilder()
-            .setCustomId(`${customIdPrefix}:${guildId}`)
-            .setPlaceholder('Choisis un rôle')
-            .setMinValues(1)
-            .setMaxValues(1)
-        );
+      : type === 'category'
+        ? new ActionRowBuilder().addComponents(
+            new ChannelSelectMenuBuilder()
+              .setCustomId(`${customIdPrefix}:${guildId}`)
+              .setPlaceholder('Choisis une catégorie')
+              .setChannelTypes([ChannelType.GuildCategory])
+          )
+        : new ActionRowBuilder().addComponents(
+            new RoleSelectMenuBuilder()
+              .setCustomId(`${customIdPrefix}:${guildId}`)
+              .setPlaceholder('Choisis un rôle')
+              .setMinValues(1)
+              .setMaxValues(1)
+          );
 
   await message.reply({ embeds: [embed], components: [row] });
 }
@@ -50,12 +58,13 @@ async function replyComponentPanel(message, { embed, customIdPrefix, guildId, ty
 export async function handleMessageCreate(message, client) {
   if (message.author.bot) return;
 
-  if (message.guild) {
-    await incrementStaffMessage(message.member).catch(() => {});
-  }
-
   /* MP : pas de réponse auto ; absence = bouton serveur → MP avec bouton → modal. */
   if (!message.guild) return;
+
+  const countingHandled = await handleCountingMessage(message).catch(() => false);
+  if (countingHandled) return;
+
+  await incrementStaffMessage(message.member).catch(() => {});
 
   const raw = message.content.trim();
   if (!raw.startsWith(PREFIX)) return;
@@ -162,6 +171,48 @@ export async function handleMessageCreate(message, client) {
             'Choisis le salon où seront postés les messages à chaque **rankup** staff : le membre sera **mentionné** et un embed récapitulera le rôle obtenu.'
           ),
         customIdPrefix: 'setcfg_rank_ann',
+        guildId,
+        type: 'channel',
+      });
+      return;
+    }
+
+    if (name === 'setcatserveurinfo') {
+      if (!need(1)) return;
+      await replyComponentPanel(message, {
+        embed: new EmbedBuilder()
+          .setTitle('Stats serveur (salons vocaux affichage)')
+          .setDescription(
+            [
+              'Choisis une **catégorie** : le bot y crée **5 salons vocaux** que personne ne peut rejoindre (vue seule), avec les noms :',
+              '· `🍂・Membres:` · `🍭・En ligne:` · `💃・En vocal:` · `🥢・Boost:` · `🏝️ · .gg/sayuri`',
+              '',
+              'Les chiffres se **mettent à jour** automatiquement (~5 min + événements). Active **Presence Intent** sur le portail Discord pour « En ligne ».',
+              'Si tu refais la commande sur une **autre** catégorie, les anciens salons stats sont supprimés et recréés.',
+            ].join('\n')
+          ),
+        customIdPrefix: 'setcfg_srvstats_parent',
+        guildId,
+        type: 'category',
+      });
+      return;
+    }
+
+    if (name === 'setchannelcompeut') {
+      if (!need(1)) return;
+      await replyComponentPanel(message, {
+        embed: new EmbedBuilder()
+          .setTitle('Salon du compteur')
+          .setDescription(
+            [
+              'Choisis un **salon texte** : les membres devront envoyer **1**, puis **2**, puis **3**… dans l’ordre.',
+              '· Message **correct** → réaction **✅**',
+              '· **Erreur** (mauvais nombre, texte, lettres) → **❌** et le compteur **repart à 0** (le prochain message valide doit être **1**).',
+              '',
+              'Seul le **nombre** doit apparaître dans le message (ex. `7`, pas `7 !`).',
+            ].join('\n')
+          ),
+        customIdPrefix: 'setcfg_counting_ch',
         guildId,
         type: 'channel',
       });

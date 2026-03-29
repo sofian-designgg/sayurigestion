@@ -18,6 +18,17 @@ const guildConfigSchema = new mongoose.Schema({
   absenceResponseChannelId: { type: String, default: null },
   /** Salon des annonces de rankup staff (mention + embed). */
   rankupAnnounceChannelId: { type: String, default: null },
+  /** Catégorie parent des salons vocaux « stats » (-setcatserveurinfo). */
+  serverStatsCategoryId: { type: String, default: null },
+  serverStatsVcMembersId: { type: String, default: null },
+  serverStatsVcOnlineId: { type: String, default: null },
+  serverStatsVcVoiceId: { type: String, default: null },
+  serverStatsVcBoostId: { type: String, default: null },
+  serverStatsVcInviteId: { type: String, default: null },
+  /** Salon du jeu « compte 1, 2, 3… » (-setchannelcompeut). */
+  countingChannelId: { type: String, default: null },
+  /** Dernier nombre valide (0 = le prochain doit être 1). */
+  countingLastNumber: { type: Number, default: 0 },
   categoryRoles: { type: categoryRolesSchema, default: () => ({}) },
 });
 

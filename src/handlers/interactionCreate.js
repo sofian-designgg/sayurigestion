@@ -18,6 +18,10 @@ import { getUserPower, canUseCommand } from '../utils/permissions.js';
 import { sendAdminLog } from '../utils/modLog.js';
 import { buildAbsenceAnnouncementEmbed, buildAbsenceButtonRow } from '../utils/absenceEmbed.js';
 import { setEmbedDraft, takeEmbedDraft } from '../utils/embedDraftStore.js';
+import {
+  createServerStatsVoiceChannels,
+  updateGuildServerStats,
+} from '../services/serverStatsChannels.js';
 
 async function safePower(member) {
   if (!member) return null;
@@ -469,6 +473,84 @@ async function handleChannelSelect(interaction, client) {
       content: `Salon des **annonces de rankup** : <#${channelId}>`,
       components: [],
     });
+    return;
+  }
+
+  if (id === `setcfg_counting_ch:${guildId}`) {
+    await GuildConfig.findOneAndUpdate(
+      { guildId },
+      {
+        countingChannelId: channelId,
+        countingLastNumber: 0,
+      },
+      { upsert: true }
+    );
+    await interaction.update({
+      content: `Salon **compteur** (1, 2, 3…) : <#${channelId}> — compteur **remis à zéro**.`,
+      components: [],
+    });
+    return;
+  }
+
+  if (id === `setcfg_srvstats_parent:${guildId}`) {
+    const categoryId = channelId;
+    const guild = interaction.guild;
+
+    const cfg = await GuildConfig.findOne({ guildId }).lean();
+
+    async function statsChannelsReady() {
+      if (!cfg?.serverStatsVcMembersId || cfg.serverStatsCategoryId !== categoryId) return false;
+      const ids = [
+        cfg.serverStatsVcMembersId,
+        cfg.serverStatsVcOnlineId,
+        cfg.serverStatsVcVoiceId,
+        cfg.serverStatsVcBoostId,
+        cfg.serverStatsVcInviteId,
+      ];
+      if (ids.some((x) => !x)) return false;
+      for (const cid of ids) {
+        const ch = await guild.channels.fetch(cid).catch(() => null);
+        if (!ch?.isVoiceBased()) return false;
+      }
+      return true;
+    }
+
+    if (await statsChannelsReady()) {
+      await updateGuildServerStats(guild);
+      await interaction.update({
+        content:
+          'Les salons **stats** sont déjà en place dans cette catégorie. **Noms rafraîchis**.',
+        components: [],
+      });
+      return;
+    }
+
+    const oldIds = [
+      cfg?.serverStatsVcMembersId,
+      cfg?.serverStatsVcOnlineId,
+      cfg?.serverStatsVcVoiceId,
+      cfg?.serverStatsVcBoostId,
+      cfg?.serverStatsVcInviteId,
+    ].filter(Boolean);
+
+    for (const oid of oldIds) {
+      const ch = await guild.channels.fetch(oid).catch(() => null);
+      if (ch) await ch.delete('Nouvelle config -setcatserveurinfo').catch(() => {});
+    }
+
+    try {
+      await createServerStatsVoiceChannels(guild, categoryId);
+      await interaction.update({
+        content:
+          '**5 salons vocaux** créés (vue seule, **connexion interdite** pour @everyone). Mise à jour **auto** (~5 min + entrées/sorties vocales & membres).',
+        components: [],
+      });
+    } catch (e) {
+      await interaction.update({
+        content: `Erreur : ${e.message}`,
+        components: [],
+      });
+    }
     return;
   }
 }

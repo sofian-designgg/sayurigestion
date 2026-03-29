@@ -22,6 +22,8 @@ export function buildHelpEmbeds() {
         '**`-setabsenceinfo`** — Salon où arrivent les **réponses** d’absence (mention + réactions ✅❌).',
         '**`-setrankstaff`** — Choisir un **rôle**, puis indiquer **minutes vocal** et **messages** requis pour le rankup auto.',
         '**`-setchannelrank`** — Salon où le bot **mentionne** le staff et poste un **embed** à chaque rankup automatique.',
+        '**`-setcatserveurinfo`** — Choisir une **catégorie** : crée **5 salons vocaux** affichage seule (membres, en ligne, en vocal, boost, lien .gg/sayuri), **mis à jour** en continu.',
+        '**`-setchannelcompeut`** — Définit le salon où l’on compte **1, 2, 3…** sans se tromper : **✅** si bon, **❌** + reset si erreur.',
         '**`-listrankstaff`** — Liste tous les **paliers** rankup + menu pour **supprimer** la config d’un rôle.',
         '**`-absencesync`** — Renvoie l’**embed d’absence** dans le salon configuré (utile après édition).',
       ].join('\n\n')
@@ -77,6 +79,7 @@ export function buildHelpEmbeds() {
       [
         '· **Absence** : configurer **les deux** salons (`-setabsencechannel` + `-setabsenceinfo`) avant utilisation.',
         '· **Rankup** : compteurs pour les membres **staff** (rôle cat.) ou ayant un **rôle palier**.',
+        '· **Stats vocales** (`-setcatserveurinfo`) : activer aussi **PRESENCE INTENT** sur le portail Discord pour le compteur **En ligne**.',
         '· **Outil embed (HTML)** : URL `https://TON_DOMAINE_RAILWAY/embed-builder` (même **PORT** que le bot) — prévisualisation, couleur, emoji, copie **JSON** ou **discord.js**. En local : `http://localhost:3000/embed-builder`.',
       ].join('\n')
     );

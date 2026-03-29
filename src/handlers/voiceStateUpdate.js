@@ -1,5 +1,6 @@
 import { consumeVoiceMinutes, markVoiceJoin } from '../services/voiceTracker.js';
 import { addVoiceMinutes } from '../services/rankup.js';
+import { scheduleStatsRefresh } from '../services/serverStatsChannels.js';
 
 export async function handleVoiceStateUpdate(oldState, newState) {
   const guild = newState.guild;
@@ -16,4 +17,6 @@ export async function handleVoiceStateUpdate(oldState, newState) {
   if (newId && newId !== oldId) {
     markVoiceJoin(guild.id, uid);
   }
+
+  scheduleStatsRefresh(guild);
 }
